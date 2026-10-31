@@ -67,3 +67,5 @@ L’import récupère également la dernière archive `-data.zip` des installati
 Les résultats statistiques sont conservés en mémoire par opérateur et invalidés à chaque changement de base. Les requêtes simultanées identiques partagent le même calcul. Les fiches lisent les systèmes, supports et détails hors du fil principal. Une base locale déjà installée évite une décompression inutile de la copie embarquée au lancement.
 
 Les fréquences séparent les libellés, les nombres et les barres. Le graphique mensuel affiche douze mois, y compris les mois à zéro, avec quatre repères espacés et un détail dépliable. Le début de période est calculé depuis le premier jour du mois pour éviter les décalages des 29, 30 et 31.
+
+Au lancement, la carte restaure `lastMapViewport` (centre et zoom, valeurs validées), puis demande une position ponctuelle avec l’autorisation iOS. Un échec conserve cette zone ; au tout premier lancement sans position, le centre initial est Paris. Une nouvelle position fraîche recentre la carte, même si seule la longitude a changé. La dernière zone est remplacée localement à chaque changement de région ; aucun historique n’est conservé.

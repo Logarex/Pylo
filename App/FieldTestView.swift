@@ -64,7 +64,7 @@ struct FieldTestView: View {
                         if let date = store.device.lastUpdated { Text("Dernière lecture : \(date.formatted(date: .omitted, time: .standard))").font(.caption).foregroundStyle(.secondary) }
                         Text("iOS ne donne pas à Pylo le numéro de téléphone, l’IMEI, la cellule utilisée, les bandes actives ni les mesures RSRP/RSRQ/SINR. Le guide ci-dessous explique comment lire ces mesures dans Field Test.").font(.caption).foregroundStyle(.secondary)
                     }
-                    InfoCard("Ta position et ton cap", subtitle: "Uniquement à ta demande, sans historique de déplacement.") {
+                    InfoCard("Ta position et ton cap", subtitle: "Position recherchée à l’ouverture ou avec le bouton ci-dessous, sans historique de déplacement.") {
                         LabeledContent("Localisation", value: store.location.permission)
                         if let precise = store.location.precisePosition { LabeledContent("Position précise", value: precise ? "Autorisée" : "Approximative") }
                         Button("Lire ma position et mon cap", systemImage: "location.north.circle") { store.location.locate() }

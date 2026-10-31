@@ -80,7 +80,7 @@ Les instructions pour entretenir les données et préparer une version sont dans
 
 ## Vie privée et sources
 
-Pas de compte, pas de publicité, pas d’outil de suivi. Les favoris restent sur l’iPhone. La localisation et le cap servent aux distances et aux directions à la demande ; Pylo ne conserve pas d’historique de déplacement. Apple Plans traite les recherches et les itinéraires selon ses conditions. Les bases publiques sont téléchargées depuis GitHub.
+Pas de compte, pas de publicité, pas d’outil de suivi. Les favoris restent sur l’iPhone. À l’ouverture, Pylo cherche la position avec l’autorisation iOS. La dernière zone de carte consultée et son zoom sont conservés sur l’iPhone pour retrouver la carte si la position est indisponible. Le cap sert aux directions ; aucun historique de déplacement n’est conservé. Apple Plans traite les recherches et les itinéraires selon ses conditions. Les bases publiques sont téléchargées depuis GitHub.
 
 - [ANFR : réseaux mobiles](https://www.data.gouv.fr/datasets/donnees-sur-les-reseaux-mobiles).
 - [ANFR : installations radioélectriques de plus de 5 watts](https://www.data.gouv.fr/datasets/donnees-sur-les-installations-radioelectriques-de-plus-de-5-watts-1).

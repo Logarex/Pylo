@@ -22,14 +22,23 @@ import MapKit
     var favorites: Set<String> { didSet { UserDefaults.standard.set(Array(favorites), forKey: "favorites") } }
     let location = LocationService()
     let device = DeviceNetworkInfo()
-    var region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522), span: MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06))
+    var region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522), span: MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06)) {
+        didSet {
+            let values = [region.center.latitude, region.center.longitude, region.span.latitudeDelta, region.span.longitudeDelta]
+            if MapViewport(values: values) != nil { UserDefaults.standard.set(values, forKey: "lastMapViewport") }
+        }
+    }
     private var request = UUID()
+    @ObservationIgnored private var centeredPositionRevision = 0
     static var localDatabase: URL { URL.documentsDirectory.appendingPathComponent("antennas.sqlite") }
     init() {
         automaticUpdates = UserDefaults.standard.object(forKey: "automaticDataUpdates") as? Bool ?? true
         installedDigest = UserDefaults.standard.string(forKey: "installedDataDigest") ?? ""
         lastDataCheck = UserDefaults.standard.object(forKey: "lastDataCheck") as? Date
         favorites = Set(UserDefaults.standard.stringArray(forKey: "favorites") ?? [])
+        if let values = UserDefaults.standard.array(forKey: "lastMapViewport") as? [Double], let saved = MapViewport(values: values) {
+            region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: saved.values[0], longitude: saved.values[1]), span: MKCoordinateSpan(latitudeDelta: saved.values[2], longitudeDelta: saved.values[3]))
+        }
 
     }
     var databaseURL: URL? {
@@ -52,6 +61,13 @@ import MapKit
             }
             ready = true
         } catch { message = error.localizedDescription; ready = true }
+    }
+    func newLocationRegion() -> MKCoordinateRegion? {
+        guard location.positionRevision > centeredPositionRevision,
+              let coordinate = location.coordinate, let measuredAt = location.measuredAt,
+              (-5...60).contains(Date().timeIntervalSince(measuredAt)) else { return nil }
+        centeredPositionRevision = location.positionRevision
+        return MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04))
     }
     func checkDataUpdates(automatic: Bool = false) async {
         guard ready, !isUpdating else { return }
@@ -167,6 +183,7 @@ import MapKit
 @MainActor @Observable final class LocationService: NSObject, @preconcurrency CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private var requested = false
+    var positionRevision = 0
     var coordinate: CLLocationCoordinate2D?
     var heading: Double?
     var headingAccuracy: Double?
@@ -221,7 +238,9 @@ import MapKit
         verticalAccuracy = fix.verticalAccuracy >= 0 ? fix.verticalAccuracy : nil
         speed = fix.speed >= 0 ? fix.speed * 3.6 : nil
         course = fix.course >= 0 && fix.speed >= 0.5 ? fix.course : nil
-        status = Date().timeIntervalSince(fix.timestamp) > 60 ? "Cette position est ancienne ; actualise-la pour une distance plus fiable." : ""
+        let age = Date().timeIntervalSince(fix.timestamp)
+        status = age > 60 ? "Cette position est ancienne ; actualise-la pour une distance plus fiable." : ""
+        if age <= 60 && age >= -5 { positionRevision += 1 }
         updatePermission()
     }
     func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {

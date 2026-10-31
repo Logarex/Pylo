@@ -15,7 +15,7 @@ struct ContentView: View {
             Tab("Le projet", systemImage: "info.circle") { DataView() }
         }
         } else { ProgressView("Préparation des données ANFR…").padding() }
-        }.task { await store.prepare(); await store.checkDataUpdates(automatic: true) }
+        }.task { await store.prepare(); store.location.locate(); await store.checkDataUpdates(automatic: true) }
         .onChange(of: scenePhase) { if scenePhase == .active { store.location.resumeIfNeeded(); Task { await store.checkDataUpdates(automatic: true) } } else { store.location.suspend() } }
         .onChange(of: store.device.connection) { Task { await store.checkDataUpdates(automatic: true) } }
     }
@@ -169,8 +169,11 @@ struct ExplorerView: View {
             }
             .onChange(of: store.generation) { Task { await store.load() } }
             .onChange(of: store.operatorName) { Task { await store.load() } }
-            .onChange(of: store.location.coordinate?.latitude) {
-                if let c = store.location.coordinate { command = MapCommand(region: MKCoordinateRegion(center: c, span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04))) }
+            .onChange(of: store.location.positionRevision, initial: true) {
+                if let region = store.newLocationRegion() {
+                    store.region = region
+                    command = MapCommand(region: region)
+                }
             }
         }
     }

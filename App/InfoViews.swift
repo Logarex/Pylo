@@ -60,7 +60,7 @@ struct DataView: View {
                     Text("Données ANFR, Licence Ouverte 2.0. La carte conserve une copie locale consultable hors ligne ; le fond de carte et les recherches peuvent nécessiter internet.").font(.caption)
                 }
                 Section("Tes données restent avec toi") {
-                    Text("Les favoris restent sur cet appareil. La localisation et le cap servent à centrer la carte et à calculer les directions et distances ; Pylo ne les conserve pas et ne les envoie pas à un serveur Pylo. Apple Plans traite les recherches et itinéraires selon ses propres conditions. Les mises à jour de la base sont téléchargées depuis GitHub, sans lui transmettre tes favoris, ta position ni ton cap.")
+                    Text("Les favoris restent sur cet appareil. La position sert à centrer la carte à l’ouverture et à calculer les distances et directions. Seule la dernière zone consultée, avec son zoom, est conservée sur cet appareil. Aucun historique de déplacement ni cap n’est enregistré. Pylo ne les envoie pas à un serveur Pylo. Apple Plans traite les recherches et itinéraires selon ses propres conditions. Les mises à jour de la base sont téléchargées depuis GitHub, sans lui transmettre tes favoris, ta position ni ton cap.")
                     Text("Pylo n’est pas affiliée à Apple, à l’ANFR ou aux opérateurs.").font(.footnote).foregroundStyle(.secondary)
                 }
             }.navigationTitle("Le projet")

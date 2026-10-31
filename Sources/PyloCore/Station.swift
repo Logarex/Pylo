@@ -97,3 +97,14 @@ public struct StationDates: Sendable {
     public let service: String
     public let source: String
 }
+
+/// A single local viewport, with bounds checked before restoring MapKit's camera.
+public struct MapViewport: Sendable {
+    public let values: [Double]
+    public init?(values: [Double]) {
+        guard values.count == 4, values.allSatisfy(\.isFinite),
+              (-90...90).contains(values[0]), (-180...180).contains(values[1]),
+              values[2] > 0, values[2] <= 180, values[3] > 0, values[3] <= 360 else { return nil }
+        self.values = values
+    }
+}

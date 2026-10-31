@@ -44,10 +44,11 @@ struct StatisticsView: View {
                             FrequencyBars(items: stats.frequencies, color: Palette.accent)
                             Text("Une même station peut compter plusieurs bandes et plusieurs générations dans une même bande.").font(.caption).foregroundStyle(.secondary)
                         }
-                        InfoCard("Les dates déclarées", subtitle: "Systèmes dont la date ANFR se situe dans les 12 derniers mois de la source") {
+                        InfoCard("Les dates des équipements", subtitle: "À quelles périodes correspondent les équipements présents dans la base ?") {
+                            Text("Chaque barre compte les systèmes dont la date ANFR tombe dans ce mois. Un système, c’est une technologie sur une fréquence : LTE 700 et LTE 1800 comptent pour deux.").font(.subheadline)
                             if stats.deployments.isEmpty { Text("Aucune date renseignée dans cette période.") }
                             else { DeploymentChart(items: stats.deployments) }
-                            Text("Ces dates décrivent les systèmes dans la copie actuelle. Elles ne mesurent pas les ajouts au catalogue ni les mises en service certaines : le sens dépend de l’état déclaré.").font(.caption).foregroundStyle(.secondary)
+                            Text("Ce graphique donne un aperçu des dates des équipements recensés aujourd’hui. Pour connaître les stations apparues depuis la dernière publication, regarde « Ce qui a changé ». Pour la mise en service d’une station, ouvre sa fiche.").font(.caption).foregroundStyle(.secondary)
                         }
                         comparisonCard
                         InfoCard("Ce qui a changé") {
@@ -238,8 +239,8 @@ struct DeploymentChart: View {
                             .position(x: labelX(index, width: width), y: labelsHeight / 2)
                     }
                 }.frame(height: labelsHeight)
-            }.accessibilityElement(children: .ignore).accessibilityLabel("Dates déclarées par mois. Le détail des valeurs est disponible ci-dessous.")
-            DisclosureGroup("Voir les valeurs par mois") {
+            }.accessibilityElement(children: .ignore).accessibilityLabel("Nombre de systèmes par mois de date ANFR. Le détail des valeurs est disponible ci-dessous.")
+            DisclosureGroup("Nombre de systèmes par mois") {
                 ForEach(items) { item in
                     LabeledContent(item.label, value: item.count.formatted()).font(.subheadline).padding(.vertical, 3)
                 }

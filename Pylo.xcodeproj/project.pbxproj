@@ -291,7 +291,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDevelopmentRegion = fr;
 				INFOPLIST_KEY_CFBundleDisplayName = Pylo;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Pylo utilise votre position pendant l’utilisation pour afficher les antennes à proximité et calculer leur distance et leur direction par rapport à vous. Votre position n’est pas conservée par Pylo.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Pylo utilise votre position pendant l’utilisation pour afficher les antennes à proximité et calculer leur distance et leur direction par rapport à vous. La dernière zone de carte consultée est conservée uniquement sur cet appareil pour la retrouver à la prochaine ouverture.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
@@ -371,7 +371,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDevelopmentRegion = fr;
 				INFOPLIST_KEY_CFBundleDisplayName = Pylo;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Pylo utilise votre position pendant l’utilisation pour afficher les antennes à proximité et calculer leur distance et leur direction par rapport à vous. Votre position n’est pas conservée par Pylo.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Pylo utilise votre position pendant l’utilisation pour afficher les antennes à proximité et calculer leur distance et leur direction par rapport à vous. La dernière zone de carte consultée est conservée uniquement sur cet appareil pour la retrouver à la prochaine ouverture.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;

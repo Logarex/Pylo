@@ -187,5 +187,15 @@ final class PyloCoreTests: XCTestCase {
         XCTAssertEqual(filtered.deployments.last?.count, 0)
         XCTAssertEqual(try db.sourceDate(), "2026-10-31")
     }
+    func testSavedViewportRejectsInvalidCoordinatesAndZoom() {
+        let paris = [48.85, 2.35, 0.04, 0.06]
+        XCTAssertEqual(MapViewport(values: paris)?.values, paris)
+        XCTAssertNil(MapViewport(values: []))
+        XCTAssertNil(MapViewport(values: [91, 2, 1, 1]))
+        XCTAssertNil(MapViewport(values: [48, 181, 1, 1]))
+        XCTAssertNil(MapViewport(values: [48, 2, 0, 1]))
+        XCTAssertNil(MapViewport(values: [48, 2, 1, 361]))
+        XCTAssertNil(MapViewport(values: [Double.nan, 2, 1, 1]))
+    }
     func testECI() { XCTAssertEqual(Radio.enodeB(25601),100); XCTAssertEqual(Radio.sector(25601),1) }
 }
