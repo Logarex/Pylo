@@ -1,0 +1,37 @@
+name: Mise à jour ANFR
+on:
+  schedule:
+    - cron: '23 7 3 * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: anfr
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Vérifier le cœur Swift
+        run: swift test
+      - name: Récupérer et valider les données officielles
+        run: |
+          mkdir -p output
+          swift run -c release anfr-import output/antennas.sqlite
+          shasum -a 256 output/antennas.sqlite > output/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anfr-validated
+          path: output/
+          retention-days: 90
+      - name: Publier dans le dépôt privé
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="anfr-$(date -u +%Y-%m-%d)-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" output/antennas.sqlite output/source.json output/SHA256SUMS --title "Antennes ANFR · $(date -u +%Y-%m-%d)" --notes "Base locale ANFR validée. Importe antennas.sqlite dans Pylo, onglet Données. Source ANFR / data.gouv.fr, Licence Ouverte 2.0."

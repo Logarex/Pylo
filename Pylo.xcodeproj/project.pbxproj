@@ -1,0 +1,378 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1DADCDE6AD0DE377C35B874E /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB1D133D1262049FE8E47634 /* AppStore.swift */; };
+		26E4F81135D3B6D019504968 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 62B9CD098037555C1D24D93A /* Foundation.framework */; };
+		2B0033EFF45134F84BBEF23C /* InfoViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55B91481CCF7BA8EA9F36C56 /* InfoViews.swift */; };
+		51E92282E1E4F78A989AF94C /* FieldTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1DE52F6CF29D2EFC548DE02 /* FieldTestView.swift */; };
+		819B9C293A92106DC0C516E0 /* Station.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD2A9F7F89564429B1AD9E1 /* Station.swift */; };
+		8964BD89427223C70D5C6CFC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A3B622AB53B86DF25ABA0883 /* Assets.xcassets */; };
+		A6B1F36DEAED51E93FE2F1C4 /* antennas.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = 09CA93B85B503D8F7F741093 /* antennas.sqlite */; };
+		B05ED0853AF69FC4EEB504F9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 949F88396B5D827603B7D404 /* ContentView.swift */; };
+		B6A6D287F3B94C7C7916F819 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33DCEE46050D9135A7AEE795 /* Database.swift */; };
+		F24FD997A5AEBED6B1D115D3 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 940991410D1F8D75E73A96F1 /* PrivacyInfo.xcprivacy */; };
+		F5A9C727FB35AE14B99B7228 /* PyloApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8445658264FDC0DB16FF9EC0 /* PyloApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		09CA93B85B503D8F7F741093 /* antennas.sqlite */ = {isa = PBXFileReference; includeInIndex = 1; name = antennas.sqlite; path = Resources/antennas.sqlite; sourceTree = "<group>"; };
+		1CD2A9F7F89564429B1AD9E1 /* Station.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Station.swift; sourceTree = "<group>"; };
+		33DCEE46050D9135A7AEE795 /* Database.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Database.swift; sourceTree = "<group>"; };
+		46819116977D0D9C6FB0F652 /* Pylo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pylo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		55B91481CCF7BA8EA9F36C56 /* InfoViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InfoViews.swift; sourceTree = "<group>"; };
+		62B9CD098037555C1D24D93A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		8445658264FDC0DB16FF9EC0 /* PyloApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PyloApp.swift; sourceTree = "<group>"; };
+		940991410D1F8D75E73A96F1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		949F88396B5D827603B7D404 /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A3B622AB53B86DF25ABA0883 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B1DE52F6CF29D2EFC548DE02 /* FieldTestView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FieldTestView.swift; sourceTree = "<group>"; };
+		EB1D133D1262049FE8E47634 /* AppStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		82DD1F64647FCA3D1D1A9E8A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				26E4F81135D3B6D019504968 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1DEACFE4EAF78F418A971D52 = {
+			isa = PBXGroup;
+			children = (
+				55BA73E8CCAAA1CBF8EBED3D /* Products */,
+				B7C8650276FCC65097E98F28 /* Frameworks */,
+				FA63BDE28F46AF6ED138A1DE /* App */,
+				51F8ACA95461B17EB4C4F0F4 /* PyloCore */,
+			);
+			sourceTree = "<group>";
+		};
+		382C21C05C1B0D486C9A3D25 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				62B9CD098037555C1D24D93A /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		51F8ACA95461B17EB4C4F0F4 /* PyloCore */ = {
+			isa = PBXGroup;
+			children = (
+				33DCEE46050D9135A7AEE795 /* Database.swift */,
+				1CD2A9F7F89564429B1AD9E1 /* Station.swift */,
+			);
+			name = PyloCore;
+			path = Sources/PyloCore;
+			sourceTree = "<group>";
+		};
+		55BA73E8CCAAA1CBF8EBED3D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				46819116977D0D9C6FB0F652 /* Pylo.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B7C8650276FCC65097E98F28 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				382C21C05C1B0D486C9A3D25 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		FA63BDE28F46AF6ED138A1DE /* App */ = {
+			isa = PBXGroup;
+			children = (
+				EB1D133D1262049FE8E47634 /* AppStore.swift */,
+				949F88396B5D827603B7D404 /* ContentView.swift */,
+				B1DE52F6CF29D2EFC548DE02 /* FieldTestView.swift */,
+				55B91481CCF7BA8EA9F36C56 /* InfoViews.swift */,
+				8445658264FDC0DB16FF9EC0 /* PyloApp.swift */,
+				A3B622AB53B86DF25ABA0883 /* Assets.xcassets */,
+				09CA93B85B503D8F7F741093 /* antennas.sqlite */,
+				940991410D1F8D75E73A96F1 /* PrivacyInfo.xcprivacy */,
+			);
+			name = App;
+			path = App;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		EA5EDF344445A2CA7CA7D01E /* Pylo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D178BC4DE33DABD263D4109E /* Build configuration list for PBXNativeTarget "Pylo" */;
+			buildPhases = (
+				077616F4AA68C9206102FC18 /* Sources */,
+				82DD1F64647FCA3D1D1A9E8A /* Frameworks */,
+				E7AD27C764AC360A259FB207 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Pylo;
+			productName = Pylo;
+			productReference = 46819116977D0D9C6FB0F652 /* Pylo.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		026518A04264D9D5040F968A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = 8ECB6FB0A514B722DF7E22E9 /* Build configuration list for PBXProject "Pylo" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 1DEACFE4EAF78F418A971D52;
+			minimizedProjectReferenceProxies = 0;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 55BA73E8CCAAA1CBF8EBED3D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				EA5EDF344445A2CA7CA7D01E /* Pylo */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E7AD27C764AC360A259FB207 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8964BD89427223C70D5C6CFC /* Assets.xcassets in Resources */,
+				A6B1F36DEAED51E93FE2F1C4 /* antennas.sqlite in Resources */,
+				F24FD997A5AEBED6B1D115D3 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		077616F4AA68C9206102FC18 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1DADCDE6AD0DE377C35B874E /* AppStore.swift in Sources */,
+				B05ED0853AF69FC4EEB504F9 /* ContentView.swift in Sources */,
+				51E92282E1E4F78A989AF94C /* FieldTestView.swift in Sources */,
+				2B0033EFF45134F84BBEF23C /* InfoViews.swift in Sources */,
+				F5A9C727FB35AE14B99B7228 /* PyloApp.swift in Sources */,
+				B6A6D287F3B94C7C7916F819 /* Database.swift in Sources */,
+				819B9C293A92106DC0C516E0 /* Station.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		31FBA033A029127D591F8A45 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		414EC589476D5104CCCB0221 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Pylo;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Ta position sert à afficher les antennes autour de toi.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.logarex.pylo;
+				SDKROOT = iphoneos;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Sources/CSQLite";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		7EC80612846EBDEA0F38BA30 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		C13352A12CF18F67521E0164 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Pylo;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Ta position sert à afficher les antennes autour de toi.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fr.logarex.pylo;
+				SDKROOT = iphoneos;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Sources/CSQLite";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		8ECB6FB0A514B722DF7E22E9 /* Build configuration list for PBXProject "Pylo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				31FBA033A029127D591F8A45 /* Debug */,
+				7EC80612846EBDEA0F38BA30 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D178BC4DE33DABD263D4109E /* Build configuration list for PBXNativeTarget "Pylo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				414EC589476D5104CCCB0221 /* Release */,
+				C13352A12CF18F67521E0164 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 026518A04264D9D5040F968A /* Project object */;
+}
