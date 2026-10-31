@@ -5,7 +5,7 @@ import FoundationNetworking
 #endif
 struct Dataset: Decodable { let resources: [Resource] }
 struct Resource: Codable { let id: String; let url: String; let title: String; let last_modified: String? }
-struct CatalogSelection: Codable { let version: String; let resource: Resource }
+struct CatalogSelection: Codable { let version: String; let resource: Resource; let datesResource: Resource? }
 @main struct Importer {
     static func main() async throws {
         let args = CommandLine.arguments
@@ -21,7 +21,8 @@ struct CatalogSelection: Codable { let version: String; let resource: Resource }
         }
         if args.count == 3 && args[1] == "--catalog" {
             let (_, resource) = try await latestResource()
-            let selected = CatalogSelection(version: resource.id + ":" + (resource.last_modified ?? resource.title), resource: resource)
+            let dates = try await latestDatesResource()
+            let selected = CatalogSelection(version: resource.id + ":" + (resource.last_modified ?? resource.title) + "|" + dates.id + ":" + (dates.last_modified ?? dates.title), resource: resource, datesResource: dates)
             try JSONEncoder().encode(selected).write(to: URL(fileURLWithPath: args[2]), options: .atomic)
             return
         }
@@ -92,6 +93,23 @@ struct CatalogSelection: Codable { let version: String; let resource: Resource }
         }
         guard count > 1000 else { throw DatabaseError.sqlite("Import anormalement petit, ancienne base conservée.") }
         try db.finishImport()
+        let datesResource: Resource
+        if let path = ProcessInfo.processInfo.environment["PYLO_SELECTED_RESOURCE"], let selected = try JSONDecoder().decode(CatalogSelection.self, from: Data(contentsOf: URL(fileURLWithPath: path))).datesResource { datesResource = selected }
+        else { datesResource = try await latestDatesResource() }
+        guard let datesURL = URL(string: datesResource.url), datesURL.scheme == "https", datesURL.host == "static.data.gouv.fr" else { throw DatabaseError.sqlite("Archive de dates ANFR non reconnue") }
+        let (datesArchive, datesResponse) = try await URLSession.shared.download(from: datesURL)
+        guard (datesResponse as? HTTPURLResponse)?.statusCode == 200 else { throw DatabaseError.sqlite("Archive de dates ANFR indisponible") }
+        let datesZip = work.appendingPathComponent("dates.zip")
+        try FileManager.default.moveItem(at: datesArchive, to: datesZip)
+        let unzip = Process(); unzip.executableURL = URL(fileURLWithPath: "/usr/bin/unzip"); unzip.arguments = ["-q", datesZip.path, "SUP_STATION.txt", "-d", work.path]
+        try unzip.run(); unzip.waitUntilExit()
+        guard unzip.terminationStatus == 0 else { throw DatabaseError.sqlite("Table des dates ANFR absente") }
+        let datesData = try Data(contentsOf: work.appendingPathComponent("SUP_STATION.txt"))
+        guard let datesText = String(data: datesData, encoding: .utf8) ?? String(data: datesData, encoding: .isoLatin1) else { throw DatabaseError.sqlite("Encodage des dates ANFR invalide") }
+        let matchedDates = try db.importStationDates(datesText, source: datesResource.title)
+        guard matchedDates > 1000 else { throw DatabaseError.sqlite("Trop peu de stations reliées aux dates ANFR") }
+        quality["stationsWithDateRecord"] = matchedDates
+        try JSONEncoder().encode(datesResource).write(to: output.deletingLastPathComponent().appendingPathComponent("dates-source.json"), options: .atomic)
         if let previous = ProcessInfo.processInfo.environment["PYLO_PREVIOUS_DATABASE"] { try db.recordComparison(previous: URL(fileURLWithPath: previous)) }
         try db.validate()
         let data = try Data(contentsOf: temporary); try data.write(to: output, options: .atomic)
@@ -132,6 +150,14 @@ struct CatalogSelection: Codable { let version: String; let resource: Resource }
         sources.append(contentsOf: [geo,boroughURL])
         let output: [String:Any] = ["date":String(ISO8601DateFormatter().string(from:Date()).prefix(10)),"natures":mappings["natures"]!,"owners":mappings["owners"]!,"communes":communeNames,"sources":sources]
         try JSONSerialization.data(withJSONObject:output,options:[.sortedKeys]).write(to:destination,options:.atomic)
+    }
+    static func latestDatesResource() async throws -> Resource {
+        let url = URL(string: "https://www.data.gouv.fr/api/1/datasets/donnees-sur-les-installations-radioelectriques-de-plus-de-5-watts-1/")!
+        let (data,response) = try await URLSession.shared.data(from: url)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw DatabaseError.sqlite("Catalogue des installations ANFR indisponible") }
+        let dataset = try JSONDecoder().decode(Dataset.self, from: data)
+        guard let resource = dataset.resources.filter({ $0.url.hasSuffix("-data.zip") && $0.title.lowercased().contains("supports") }).sorted(by: { ($0.last_modified ?? "") > ($1.last_modified ?? "") }).first else { throw DatabaseError.sqlite("Archive des installations ANFR introuvable") }
+        return resource
     }
     static func latestResource() async throws -> (Data, Resource) {
         let endpoint = URL(string: "https://www.data.gouv.fr/api/1/datasets/6ab291cf426d615c84196260/")!

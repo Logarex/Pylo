@@ -90,3 +90,10 @@ public struct AntennaSupport: Identifiable, Sendable {
     public let longitude: Double
     public let azimuths: [Double]
 }
+
+public struct StationDates: Sendable {
+    public let implantation: String
+    public let modification: String
+    public let service: String
+    public let source: String
+}

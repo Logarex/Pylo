@@ -14,6 +14,8 @@ Pylo est écrite en Swift, avec une interface native, des données ANFR consulta
 
 **Gratuite et open source · développée par un étudiant · licence GPL-3.0.**
 
+Les fiches distinguent les dates d’implantation, de mise en service et de dernière modification déclarées dans le jeu ANFR des installations de plus de 5 watts, lorsqu’une correspondance existe. Les statistiques permettent aussi de comparer deux opérateurs : stations, supports, générations et bandes de fréquence.
+
 ## Un aperçu de l’app
 
 <p align="center">

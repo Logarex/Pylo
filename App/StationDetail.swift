@@ -7,6 +7,7 @@ struct StationDetail: View {
     @State private var systems: [RadioSystem] = []
     @State private var supports: [AntennaSupport] = []
     @State private var error: String?
+    @State private var dates: StationDates?
     @State private var sourceDetails: [ANFRSourceSupport] = []
     private var color: Color { Palette.operatorColor(station.operatorName) }
     private var distance: Double? {
@@ -70,6 +71,17 @@ struct StationDetail: View {
                         } else { Text("Autorise la localisation pour connaître la distance et la direction de cette station depuis toi.") }
                         Text("On ne peut pas calculer un RSRP, un SINR ou un débit fiable avec la distance seule : il manque la puissance émise, les gains, les obstacles et le bruit. Pour savoir ce que reçoit vraiment ton iPhone, regarde Field Test.").font(.footnote).foregroundStyle(.secondary)
                         NavigationLink { FieldTestView() } label: { Label("Comprendre mon signal", systemImage: "waveform.path.ecg") }
+                    }
+                    InfoCard("Les dates de la station") {
+                        if let dates {
+                            LabeledContent("Implantation", value: dates.implantation.isEmpty ? "Non renseignée" : formattedDate(dates.implantation))
+                            LabeledContent("Mise en service", value: dates.service.isEmpty ? "Non renseignée" : formattedDate(dates.service))
+                            LabeledContent("Dernière modification", value: dates.modification.isEmpty ? "Non renseignée" : formattedDate(dates.modification))
+                            Text("Dates déclarées de la station, issues des installations ANFR de plus de 5 watts. Elles ne sont pas les dates de chaque bande ni une mesure de l’activité actuelle.").font(.caption).foregroundStyle(.secondary)
+                            Text("Source : " + dates.source).font(.caption2).foregroundStyle(.secondary)
+                        } else {
+                            Text("Dates indisponibles dans cette copie pour cette station. Vérifie les mises à jour dans Le projet.").font(.subheadline).foregroundStyle(.secondary)
+                        }
                     }
                     InfoCard("Le site en détail") {
                         LabeledContent("Station ANFR", value: station.id)
@@ -144,7 +156,7 @@ struct StationDetail: View {
         }.frame(maxWidth: .infinity, alignment: .leading).padding(24).background(color.opacity(0.07), in: .rect(cornerRadius: 28))
     }
     private func loadSystems() {
-        do { if let url = store.databaseURL { let db = try AntennaDatabase(url: url); systems = try db.systems(for: station.id); supports = try db.supports(for: station.id); sourceDetails = try db.sourceDetails(for: station.id) } }
+        do { if let url = store.databaseURL { let db = try AntennaDatabase(url: url); systems = try db.systems(for: station.id); supports = try db.supports(for: station.id); sourceDetails = try db.sourceDetails(for: station.id); dates = try db.stationDates(for: station.id) } }
         catch { self.error = error.localizedDescription }
     }
     private func technology(_ generation: String) -> String { switch generation { case "2G": "GSM"; case "3G": "UMTS"; case "4G": "LTE"; default: "5G NR" } }

@@ -78,3 +78,9 @@ D’autres données ANFR existent dans d’autres jeux, notamment sur des instal
 - [Apple : CLLocation](https://developer.apple.com/documentation/corelocation/cllocation)
 - [Apple : CTCellularData](https://developer.apple.com/documentation/coretelephony/ctcellulardata)
 - [Apple : technologie radio déclarée par service](https://developer.apple.com/documentation/coretelephony/cttelephonynetworkinfo/servicecurrentradioaccesstechnology)
+
+## Complément : dates administratives des stations
+
+Pylo relie désormais `STA_NM_ANFR` à `SUP_STATION.txt` du [jeu officiel des installations de plus de 5 watts](https://www.data.gouv.fr/datasets/donnees-sur-les-installations-radioelectriques-de-plus-de-5-watts-1). Les champs `DTE_IMPLANTATION`, `DTE_EN_SERVICE` et `DTE_MODIF` sont conservés dans une petite table distincte, avec le titre de leur publication source. Les identifiants restent des chaînes pour conserver les zéros initiaux. Les dates vides restent non renseignées. Une station mobile récente peut être absente de cette publication mensuelle, même si elle apparaît déjà dans l’observatoire mobile hebdomadaire.
+
+La surveillance compare les versions des deux ressources : une nouvelle publication des installations déclenche aussi une nouvelle base. Une erreur de téléchargement, de schéma ou de rapprochement interrompt la publication et conserve la base publique précédente. Ces dates de station sont distinctes des dates système de l’observatoire et de la date de publication de chaque fichier.

@@ -113,6 +113,41 @@ public final class AntennaDatabase {
             try execute("INSERT OR REPLACE INTO metadata VALUES(\(quote(key)),\(quote(value)))")
         }
     }
+    public func importStationDates(_ text: String, source: String) throws -> Int {
+        try execute("CREATE TABLE IF NOT EXISTS station_dates(stationID TEXT PRIMARY KEY,implantation TEXT,modification TEXT,service TEXT,source TEXT); BEGIN TRANSACTION;")
+        var header: [String] = []; var imported = 0
+        let stationIDs = Set(try rows("SELECT id FROM stations").map { $0[0] })
+        let parser = DateFormatter(); parser.locale = Locale(identifier: "en_US_POSIX"); parser.timeZone = TimeZone(secondsFromGMT: 0); parser.dateFormat = "dd/MM/yyyy"; parser.isLenient = false
+        let output = DateFormatter(); output.locale = parser.locale; output.timeZone = parser.timeZone; output.dateFormat = "yyyy-MM-dd"
+        var dateCache: [String:String] = [:]
+        try CSV.rows(text) { row in
+            if header.isEmpty {
+                header = row.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "\u{feff}", with: "") }
+                guard ["STA_NM_ANFR","DTE_IMPLANTATION","DTE_MODIF","DTE_EN_SERVICE"].allSatisfy(header.contains) else { throw DatabaseError.sqlite("Colonnes de dates ANFR non reconnues") }
+                return
+            }
+            guard row.count == header.count else { throw DatabaseError.sqlite("Ligne de dates ANFR invalide") }
+            func field(_ key: String) -> String { row[header.firstIndex(of: key)!] }
+            func iso(_ raw: String) throws -> String {
+                guard !raw.isEmpty else { return "" }
+                if let cached = dateCache[raw] { return cached }
+                guard let date = parser.date(from: raw), parser.string(from: date) == raw else { throw DatabaseError.sqlite("Date ANFR non reconnue : " + raw) }
+                let value = output.string(from: date); dateCache[raw] = value; return value
+            }
+            let id = field("STA_NM_ANFR")
+            guard stationIDs.contains(id) else { return }
+            let dates = try [iso(field("DTE_IMPLANTATION")),iso(field("DTE_MODIF")),iso(field("DTE_EN_SERVICE"))]
+            try execute("INSERT INTO station_dates SELECT id,\(quote(dates[0])),\(quote(dates[1])),\(quote(dates[2])),\(quote(source)) FROM stations WHERE id=\(quote(id));")
+            imported += Int(sqlite3_changes(db))
+        }
+        try execute("COMMIT;")
+        return imported
+    }
+    public func stationDates(for id: String) throws -> StationDates? {
+        guard !(try rows("SELECT name FROM sqlite_master WHERE type='table' AND name='station_dates'")).isEmpty else { return nil }
+        guard let row = try rows("SELECT implantation,modification,service,source FROM station_dates WHERE stationID=\(quote(id))").first else { return nil }
+        return StationDates(implantation: row[0], modification: row[1], service: row[2], source: row[3])
+    }
     public func statistics(operatorName: String = "") throws -> NetworkStatistics {
         let filter = operatorName.isEmpty ? "" : " WHERE operatorName=" + quote(operatorName)
         let joinFilter = operatorName.isEmpty ? "" : " AND stationID IN (SELECT id FROM stations WHERE operatorName=" + quote(operatorName) + ")"

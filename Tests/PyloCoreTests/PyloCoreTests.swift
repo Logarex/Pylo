@@ -151,5 +151,21 @@ final class PyloCoreTests: XCTestCase {
         XCTAssertEqual(original,[row,second])
         XCTAssertEqual(try db.stations(ids:["station"]).first?.readableAddress,"Rue de l’église, 75001 Paris")
     }
+    func testStationDatesJoinAndMissingValues() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let db = try AntennaDatabase(url: root, writable: true); try db.prepareImport()
+        try db.insert(id: "0010030350", operatorName: "SFR", lat: 48, lon: 2, address: "", system: "LTE 700", status: "", updated: "2026-10-29")
+        try db.finishImport()
+        XCTAssertNil(try db.stationDates(for: "0010030350"))
+        let count = try db.importStationDates("STA_NM_ANFR;DTE_IMPLANTATION;DTE_MODIF;DTE_EN_SERVICE\n0010030350;04/09/2009;;01/07/2010\nother;01/01/2000;;\n", source: "octobre 2026")
+        XCTAssertEqual(count, 1)
+        let dates = try XCTUnwrap(db.stationDates(for: "0010030350"))
+        XCTAssertEqual(dates.implantation, "2009-09-04")
+        XCTAssertEqual(dates.modification, "")
+        XCTAssertEqual(dates.service, "2010-07-01")
+        XCTAssertEqual(dates.source, "octobre 2026")
+        XCTAssertNil(try db.stationDates(for: "other"))
+    }
     func testECI() { XCTAssertEqual(Radio.enodeB(25601),100); XCTAssertEqual(Radio.sector(25601),1) }
 }

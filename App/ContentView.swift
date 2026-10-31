@@ -56,7 +56,7 @@ struct ExplorerView: View {
     @FocusState private var searchFocused: Bool
     @State private var placeSearch: MKLocalSearch?
     @State private var searchRequestID = UUID()
-    @State private var showDirections = false
+    @State private var showDirections = true
     var body: some View {
         @Bindable var store = store
         NavigationStack {
@@ -140,8 +140,6 @@ struct ExplorerView: View {
                         Text(store.message ?? (store.stations.count >= 600 ? "600 stations affichées · zoome pour affiner" : "\(store.stations.count) stations dans cette zone")).font(.caption).foregroundStyle(.secondary)
                         if !store.location.status.isEmpty { Text(store.location.status).font(.caption) }
                         if !searchMessage.isEmpty { Text(searchMessage).font(.caption) }
-                        if showDirections { Text("Orientations des stations isolées · après le zoom · pas une couverture").font(.caption2) }
-                        Text("Groupes multicolores : plusieurs opérateurs.").font(.caption2).foregroundStyle(.secondary)
                     }
                     Spacer()
                     if store.loading { ProgressView() } else { Image(systemName: "antenna.radiowaves.left.and.right").foregroundStyle(Palette.accent).font(.title2) }

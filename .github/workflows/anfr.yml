@@ -63,7 +63,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$DATA_TAG" output/antennas.sqlite.gz output/source.json output/catalog.json output/manifest.json output/quality.json output/SHA256SUMS --title "Antennes ANFR · $(date -u +%Y-%m-%d)" --notes 'Données ANFR validées, Licence Ouverte 2.0. Pylo télécharge automatiquement cette base en Wi-Fi. Publication du manifeste seulement après la mise en ligne des fichiers.'
+          gh release create "$DATA_TAG" output/antennas.sqlite.gz output/source.json output/catalog.json output/dates-source.json output/manifest.json output/quality.json output/SHA256SUMS --title "Antennes ANFR · $(date -u +%Y-%m-%d)" --notes 'Données ANFR validées, Licence Ouverte 2.0. Pylo télécharge automatiquement cette base en Wi-Fi. Publication du manifeste seulement après la mise en ligne des fichiers.'
       - name: Activer la mise à jour pour les applications
         if: steps.catalog.outputs.changed == 'true'
         env:
