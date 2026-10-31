@@ -49,7 +49,9 @@ Les fiches séparent les informations au lieu de mélanger toutes les bandes dan
 
 Une station peut être rattachée à plusieurs supports : Pylo les conserve et les distingue. Le repère de carte et la distance utilisent le premier support enregistré ; la fiche liste les supports disponibles.
 
-Les flèches d’orientation sur la carte sont petites et gardent la même taille à l’écran. Elles s’effacent pendant le déplacement ou le zoom, puis reviennent après l’arrêt. Pour alléger le rendu, elles concernent seulement les stations individuelles visibles : **12 stations et 48 flèches maximum**, avec six directions au plus par station sur la carte. La fiche garde les directions complètes.
+La page carte n’affiche pas de titre ni de bandeau de navigation au-dessus de la recherche.
+
+Les flèches d’orientation sont attachées à la tête des repères et gardent la même taille à l’écran. Un fin contour clair les distingue du fond, y compris pour les couleurs sombres. Elles s’effacent pendant le déplacement ou le zoom, puis reviennent après l’arrêt. Pour alléger le rendu, elles concernent seulement les stations individuelles visibles : **12 stations et 48 flèches maximum**, avec six directions au plus par station sur la carte. La fiche garde les directions complètes.
 
 **Ces flèches montrent une orientation, pas une portée ni une zone de couverture.** La distance, les murs, le relief, les interférences et la charge du réseau jouent tous sur la réception. Pylo explique ces limites et ne transforme pas une distance en faux niveau de signal.
 

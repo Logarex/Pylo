@@ -26,3 +26,9 @@ La carte utilise MKMapView et ses regroupements natifs pour conserver les gestes
 Les orientations de la carte sont désormais dessinées dans une seule couche légère, avec des flèches de 30 points et un trait de 1,6 point, indépendants du niveau de zoom. Elles s’effacent pendant le mouvement et reviennent après 360 ms de repos. Seuls les marqueurs individuels visibles sont concernés, avec au plus 12 stations et 48 flèches au total (six directions maximum par station sur la carte). Les directions complètes restent consultables dans la fiche.
 
 Les mises à jour de marqueurs sont différées pendant un geste. Les images de regroupement sont réutilisées dans un cache borné à 200 entrées. Le plan d’orientations est testé pour sa limite, son ordre de proximité et l’élimination des doublons/angles invalides.
+
+### Ancrage des flèches
+
+Les flèches sont dessinées dans un UIView transparent au-dessus de la carte. Leur point de départ est calculé depuis la tête du MKMarkerAnnotationView. Leur direction est projetée depuis les coordonnées géographiques via MapKit pour suivre la rotation et l’inclinaison de la carte. Le trait coloré fait 2,5 points avec un contour clair de 5 points ; sa partie visible fait 30 points. La couche est cachée pendant les gestes et reste limitée à 48 flèches.
+
+Les orientations des supports principaux de toutes les stations chargées sont récupérées dans une seule requête SQLite. Ne pas limiter ce chargement aux premières stations : des marqueurs isolés visibles pourraient sinon ne jamais avoir de flèches. La barre de navigation est entièrement masquée uniquement sur la page Explorer.

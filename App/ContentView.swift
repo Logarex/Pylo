@@ -107,8 +107,7 @@ struct ExplorerView: View {
                     if store.loading { ProgressView() } else { Image(systemName: "antenna.radiowaves.left.and.right").foregroundStyle(Palette.accent).font(.title2) }
                 }.padding(18).pyloGlass().padding()
             }
-            .navigationTitle("Pylo").navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(item: $selected) { cluster in
                 if cluster.stations.count == 1, let station = cluster.stations.first {
                     StationDetail(station: station).presentationDetents([.medium,.large])

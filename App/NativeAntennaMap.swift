@@ -28,6 +28,16 @@ struct NativeAntennaMap: UIViewRepresentable {
         map.isZoomEnabled = true; map.isScrollEnabled = true; map.isRotateEnabled = true; map.isPitchEnabled = true
         map.showsUserLocation = true; map.showsCompass = true; map.showsScale = true
         map.preferredConfiguration = MKStandardMapConfiguration(elevationStyle: .flat, emphasisStyle: .muted)
+        let directionsLayer = OrientationLayer()
+        directionsLayer.translatesAutoresizingMaskIntoConstraints = false
+        map.addSubview(directionsLayer)
+        NSLayoutConstraint.activate([
+            directionsLayer.leadingAnchor.constraint(equalTo: map.leadingAnchor),
+            directionsLayer.trailingAnchor.constraint(equalTo: map.trailingAnchor),
+            directionsLayer.topAnchor.constraint(equalTo: map.topAnchor),
+            directionsLayer.bottomAnchor.constraint(equalTo: map.bottomAnchor)
+        ])
+        context.coordinator.directionsLayer = directionsLayer
         map.register(MKMarkerAnnotationView.self, forAnnotationViewWithReuseIdentifier: "station")
         map.register(MKAnnotationView.self, forAnnotationViewWithReuseIdentifier: MKMapViewDefaultClusterAnnotationViewReuseIdentifier)
         return map
@@ -45,7 +55,7 @@ struct NativeAntennaMap: UIViewRepresentable {
     static func dismantleUIView(_ map: MKMapView, coordinator: Coordinator) {
         coordinator.refreshTask?.cancel()
         map.delegate = nil
-        map.removeOverlays(map.overlays)
+        coordinator.directionsLayer?.removeFromSuperview()
     }
     @MainActor final class Coordinator: NSObject, MKMapViewDelegate {
         var parent: NativeAntennaMap
@@ -54,8 +64,7 @@ struct NativeAntennaMap: UIViewRepresentable {
         var commandID: UUID?
         var moving = false
         var refreshTask: Task<Void, Never>?
-        var orientationOverlay: OrientationOverlay?
-        var renderedArrows: [OrientationArrow] = []
+        weak var directionsLayer: OrientationLayer?
         var imageCache: [String: UIImage] = [:]
         init(_ parent: NativeAntennaMap) { self.parent = parent }
         func applyStations(_ map: MKMapView) {
@@ -72,8 +81,8 @@ struct NativeAntennaMap: UIViewRepresentable {
         func scheduleDirections(_ map: MKMapView) {
             refreshTask?.cancel()
             if !parent.showDirections {
-                if let orientationOverlay { map.removeOverlay(orientationOverlay) }
-                orientationOverlay = nil; renderedArrows = []
+                directionsLayer?.arrows = []
+                directionsLayer?.isHidden = true
                 return
             }
             refreshTask = Task { @MainActor [weak self, weak map] in
@@ -86,22 +95,29 @@ struct NativeAntennaMap: UIViewRepresentable {
                     return view.superview != nil && !view.isHidden && view.alpha > 0.1
                 }.map(\.station)
                 let arrows = OrientationPlan.make(stations: visible, directions: self.parent.directions, latitude: map.centerCoordinate.latitude, longitude: map.centerCoordinate.longitude)
-                if arrows == self.renderedArrows, let overlay = self.orientationOverlay, overlay.boundingMapRect.contains(map.visibleMapRect) {
-                    map.renderer(for: overlay)?.alpha = 1
-                    return
+                guard let layer = self.directionsLayer else { return }
+                layer.arrows = arrows.compactMap { arrow in
+                    guard let annotation = self.annotations[arrow.stationID], let view = map.view(for: annotation) else { return nil }
+                    // Anchor to the round head of the marker, not the pin tip underneath it.
+                    let anchor = view.convert(CGPoint(x: view.bounds.midX, y: min(view.bounds.midY, view.bounds.minY + view.bounds.width / 2)), to: layer)
+                    let coordinate = annotation.coordinate
+                    let radians = arrow.azimuth * .pi / 180
+                    let reference = CLLocationCoordinate2D(latitude: coordinate.latitude + cos(radians)*0.001, longitude: coordinate.longitude + sin(radians)*0.001/max(0.05,cos(coordinate.latitude * .pi/180)))
+                    let origin = map.convert(coordinate, toPointTo: layer)
+                    let projected = map.convert(reference, toPointTo: layer)
+                    let dx = projected.x-origin.x, dy = projected.y-origin.y
+                    let magnitude = hypot(dx,dy)
+                    guard magnitude.isFinite, magnitude > 0 else { return nil }
+                    let ux = dx/magnitude, uy = dy/magnitude
+                    return ScreenOrientation(start: CGPoint(x: anchor.x+ux*21,y: anchor.y+uy*21), end: CGPoint(x: anchor.x+ux*51,y: anchor.y+uy*51), color: UIColor(Palette.operatorColor(arrow.operatorName)))
                 }
-                if let old = self.orientationOverlay { map.removeOverlay(old) }
-                self.renderedArrows = arrows
-                self.orientationOverlay = nil
-                guard !arrows.isEmpty else { return }
-                let overlay = OrientationOverlay(arrows: arrows, rect: map.visibleMapRect)
-                self.orientationOverlay = overlay
-                map.addOverlay(overlay, level: .aboveRoads)
+                layer.isHidden = false
+                map.bringSubviewToFront(layer)
             }
         }
         func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
             moving = true; refreshTask?.cancel()
-            if let orientationOverlay { mapView.renderer(for: orientationOverlay)?.alpha = 0 }
+            directionsLayer?.isHidden = true
         }
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
             moving = false
@@ -137,10 +153,6 @@ struct NativeAntennaMap: UIViewRepresentable {
             parent.onSelection(members.sorted { $0.operatorName < $1.operatorName })
             mapView.deselectAnnotation(annotation, animated: false)
         }
-        func mapView(_ mapView: MKMapView, rendererFor overlay: any MKOverlay) -> MKOverlayRenderer {
-            guard let orientations = overlay as? OrientationOverlay else { return MKOverlayRenderer(overlay: overlay) }
-            return OrientationRenderer(overlay: orientations)
-        }
         private func clusterImage(_ members: [Station]) -> UIImage {
             let groups = Dictionary(grouping: members, by: \.operatorName).mapValues(\.count)
             let names = groups.keys.sorted()
@@ -167,39 +179,43 @@ struct NativeAntennaMap: UIViewRepresentable {
     }
 }
 
-/// One lightweight layer; arrow length stays constant on screen instead of expanding on zoom.
-final class OrientationOverlay: NSObject, MKOverlay {
-    let arrows: [OrientationArrow]
-    let boundingMapRect: MKMapRect
-    var coordinate: CLLocationCoordinate2D { MKMapPoint(x: boundingMapRect.midX, y: boundingMapRect.midY).coordinate }
-    init(arrows: [OrientationArrow], rect: MKMapRect) { self.arrows = arrows; boundingMapRect = rect.insetBy(dx: -rect.width * 0.1, dy: -rect.height * 0.1) }
+/// Screen-space paths avoid map tile scaling and stay attached to the actual marker head.
+struct ScreenOrientation {
+    let start: CGPoint
+    let end: CGPoint
+    let color: UIColor
 }
-final class OrientationRenderer: MKOverlayRenderer {
-    private let arrows: [OrientationArrow]
-    private let colors: [CGColor]
-    init(overlay: OrientationOverlay) {
-        arrows = overlay.arrows
-        colors = overlay.arrows.map { UIColor(Palette.operatorColor($0.operatorName)).cgColor }
-        super.init(overlay: overlay)
+final class OrientationLayer: UIView {
+    var arrows: [ScreenOrientation] = [] { didSet { setNeedsDisplay() } }
+    init() {
+        super.init(frame: .zero)
+        backgroundColor = .clear; isOpaque = false; isUserInteractionEnabled = false
+        isAccessibilityElement = false; isHidden = true
+        contentMode = .redraw
     }
-    override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
-        guard zoomScale.isFinite, zoomScale > 0 else { return }
-        let scale = 1 / zoomScale
-        context.setLineWidth(1.6 * scale)
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    override func draw(_ rect: CGRect) {
+        guard let context = UIGraphicsGetCurrentContext() else { return }
         context.setLineCap(.round); context.setLineJoin(.round)
-        let length = 30 * scale, head = 5 * scale, inset = 10 * scale
-        for (index, arrow) in arrows.enumerated() {
-            let origin = point(for: MKMapPoint(CLLocationCoordinate2D(latitude: arrow.latitude, longitude: arrow.longitude)))
-            let radians = arrow.azimuth * .pi / 180
-            let dx = sin(radians), dy = -cos(radians)
-            let start = CGPoint(x: origin.x + dx * inset, y: origin.y + dy * inset)
-            let end = CGPoint(x: start.x + dx * length, y: start.y + dy * length)
-            context.setStrokeColor(colors[index])
-            context.move(to: start); context.addLine(to: end)
-            context.move(to: CGPoint(x: end.x - dx * head + dy * head * 0.6, y: end.y - dy * head - dx * head * 0.6))
-            context.addLine(to: end)
-            context.addLine(to: CGPoint(x: end.x - dx * head - dy * head * 0.6, y: end.y - dy * head + dx * head * 0.6))
-            context.strokePath()
+        for arrow in arrows {
+            let dx = arrow.end.x-arrow.start.x, dy = arrow.end.y-arrow.start.y
+            let magnitude = hypot(dx,dy)
+            guard magnitude > 0 else { continue }
+            let ux = dx/magnitude, uy = dy/magnitude
+            let path = CGMutablePath()
+            path.move(to: arrow.start); path.addLine(to: arrow.end)
+            let head = CGMutablePath()
+            head.move(to: arrow.end)
+            head.addLine(to: CGPoint(x: arrow.end.x-ux*8+uy*4.5,y: arrow.end.y-uy*8-ux*4.5))
+            head.addLine(to: CGPoint(x: arrow.end.x-ux*8-uy*4.5,y: arrow.end.y-uy*8+ux*4.5))
+            head.closeSubpath()
+            context.setStrokeColor(UIColor.white.withAlphaComponent(0.95).cgColor)
+            context.setLineWidth(5)
+            context.addPath(path); context.strokePath()
+            context.addPath(head); context.strokePath()
+            context.setStrokeColor(arrow.color.cgColor); context.setLineWidth(2.5)
+            context.addPath(path); context.strokePath()
+            context.setFillColor(arrow.color.cgColor); context.addPath(head); context.fillPath()
         }
     }
 }

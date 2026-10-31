@@ -54,6 +54,9 @@ final class PyloCoreTests: XCTestCase {
         try db.finishImport()
         XCTAssertEqual(try db.systems(for: "station").first?.azimuths, [140,220,280])
         XCTAssertEqual(try db.supports(for: "station").count, 2)
+        XCTAssertEqual(try db.primaryDirections(for: ["station"])["station"], [280])
+        XCTAssertTrue(try db.primaryDirections(for: ["unknown' OR 1=1 --"]).isEmpty)
+        XCTAssertTrue(try db.primaryDirections(for: []).isEmpty)
         XCTAssertEqual(try db.statistics().supportCount, 2)
         XCTAssertEqual(try db.statistics().systemCount, 1)
     }

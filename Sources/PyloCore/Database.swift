@@ -62,6 +62,13 @@ public final class AntennaDatabase {
             AntennaSupport(id: $0[0], height: $0[1], latitude: Double($0[2]) ?? 0, longitude: Double($0[3]) ?? 0, azimuths: Array(Set($0[4].split(separator: "|").compactMap { Double($0) }.filter { (0..<360).contains($0) })).sorted())
         }
     }
+    public func primaryDirections(for stationIDs: [String]) throws -> [String: [Double]] {
+        guard !stationIDs.isEmpty else { return [:] }
+        let ids = stationIDs.prefix(600).map(quote).joined(separator: ",")
+        return Dictionary(uniqueKeysWithValues: try rows("SELECT p.stationID,p.azimuths FROM supports p JOIN stations s ON p.stationID=s.id AND p.supportID=s.supportID WHERE s.id IN (\(ids))").map { row in
+            (row[0], Array(Set(row[1].split(separator: "|").compactMap { Double($0) }.filter { $0.isFinite && (0..<360).contains($0) })).sorted())
+        })
+    }
     public func recordComparison(previous: URL) throws {
         let old = try AntennaDatabase(url: previous)
         guard try old.rows("PRAGMA user_version").first?.first == "2" else { return }
