@@ -19,4 +19,10 @@ Le workflow mensuel télécharge la dernière publication pour comparer les iden
 
 Avant de changer les couleurs, garder SFR en majuscules dans operatorDisplayName et vérifier les marqueurs simples, les groupes multicolores et les légendes des graphiques.
 
-La carte utilise MKMapView et ses regroupements natifs pour conserver les gestes de zoom fluides. Les requêtes sont décalées de 300 ms après la fin du mouvement ; les flèches sont limitées à 24 stations et regroupées en un overlay par opérateur. La longueur des flèches (250 m) est un repère graphique, pas une portée radio.
+La carte utilise MKMapView et ses regroupements natifs pour conserver les gestes de zoom fluides. Les requêtes sont décalées de 300 ms après la fin du mouvement ; les flèches sont limitées à 12 stations individuelles et 48 directions dans une seule couche de dessin. Leur taille est constante à l’écran et ne représente pas une portée radio.
+
+### Orientations et fluidité
+
+Les orientations de la carte sont désormais dessinées dans une seule couche légère, avec des flèches de 30 points et un trait de 1,6 point, indépendants du niveau de zoom. Elles s’effacent pendant le mouvement et reviennent après 360 ms de repos. Seuls les marqueurs individuels visibles sont concernés, avec au plus 12 stations et 48 flèches au total (six directions maximum par station sur la carte). Les directions complètes restent consultables dans la fiche.
+
+Les mises à jour de marqueurs sont différées pendant un geste. Les images de regroupement sont réutilisées dans un cache borné à 200 entrées. Le plan d’orientations est testé pour sa limite, son ordre de proximité et l’élimination des doublons/angles invalides.

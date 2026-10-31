@@ -43,7 +43,9 @@ import MapKit
             let result = try await Task.detached(priority: .userInitiated) {
                 let db = try AntennaDatabase(url: url)
                 let stations = try db.stations(south: r.center.latitude-r.span.latitudeDelta/2, north: r.center.latitude+r.span.latitudeDelta/2, west: r.center.longitude-r.span.longitudeDelta/2, east: r.center.longitude+r.span.longitudeDelta/2, generation: g, operatorName: op)
-                let directions = Dictionary(uniqueKeysWithValues: stations.prefix(24).map { station in
+                let directions = Dictionary(uniqueKeysWithValues: stations.sorted { a,b in
+                    pow(a.latitude-r.center.latitude,2) + pow(a.longitude-r.center.longitude,2) < pow(b.latitude-r.center.latitude,2) + pow(b.longitude-r.center.longitude,2)
+                }.prefix(36).map { station in
                     (station.id, ((try? db.supports(for: station.id)) ?? []).first(where: { $0.id == station.supportID })?.azimuths ?? [])
                 })
                 return (stations, directions)

@@ -77,7 +77,7 @@ Pylo n’est affiliée ni à Apple, ni à l’ANFR, ni aux opérateurs. Les logo
 
 Le fichier embarqué `App/Resources/antennas.sqlite.gz` est compressé (environ 36 Mo). Au premier lancement, le cœur Swift le décompresse dans le cache de l’app (environ 146 Mo). Une mise à jour choisie par l’utilisateur reste dans Documents. Le fichier SQLite brut local est ignoré par Git ; il sert à la maintenance.
 
-Le schéma 2 conserve chaque couple station–système : technologie, bande, état, date, azimuts. Il ajoute les identifiants de supports et leur hauteur. Les directions affichées sont des axes, sans largeur de faisceau inventée. Les azimuts de la carte sont limités aux 24 premières stations de la zone ; la fiche contient toutes les directions renseignées pour la station.
+Le schéma 2 conserve chaque couple station–système : technologie, bande, état, date, azimuts. Il ajoute les identifiants de supports et leur hauteur. Les directions affichées sont des axes, sans largeur de faisceau inventée. Les orientations de la carte concernent au plus 12 stations individuelles visibles ; la fiche contient toutes les directions renseignées pour la station.
 
 Le pipeline mensuel récupère la publication précédente et compare les identifiants. Une station peut avoir plusieurs supports : ils sont conservés séparément et comptés distinctement. Les directions de la carte concernent le support du repère ; les fiches regroupent les azimuts de la station et listent ses supports.
 
@@ -89,4 +89,10 @@ RNC Mobile : lien et proposition de contact dans `docs/RNC-MOBILE.md`. Aucune r�
 
 Sources complémentaires : [CoreTelephony](https://developer.apple.com/documentation/coretelephony/cttelephonynetworkinfo/servicecurrentradioaccesstechnology), [repères de mesure Teltonika](https://wiki.teltonika-networks.com/view/Mobile_Signal_Strength_Recommendations), [définition des mesures LTE ETSI](https://www.etsi.org/deliver/etsi_ts/136200_136299/136214/08.03.00_60/ts_136214v080300p.pdf).
 
-La carte utilise MKMapView et ses regroupements natifs pour conserver les gestes de zoom fluides. Les requêtes sont décalées de 300 ms après la fin du mouvement ; les flèches sont limitées à 24 stations et regroupées en un overlay par opérateur. La longueur des flèches (250 m) est un repère graphique, pas une portée radio.
+La carte utilise MKMapView et ses regroupements natifs pour conserver les gestes de zoom fluides. Les requêtes sont décalées de 300 ms après la fin du mouvement ; les flèches sont limitées à 12 stations individuelles et 48 directions dans une seule couche de dessin. Leur taille est constante à l’écran et ne représente pas une portée radio.
+
+### Orientations et fluidité
+
+Les orientations de la carte sont désormais dessinées dans une seule couche légère, avec des flèches de 30 points et un trait de 1,6 point, indépendants du niveau de zoom. Elles s’effacent pendant le mouvement et reviennent après 360 ms de repos. Seuls les marqueurs individuels visibles sont concernés, avec au plus 12 stations et 48 flèches au total (six directions maximum par station sur la carte). Les directions complètes restent consultables dans la fiche.
+
+Les mises à jour de marqueurs sont différées pendant un geste. Les images de regroupement sont réutilisées dans un cache borné à 200 entrées. Le plan d’orientations est testé pour sa limite, son ordre de proximité et l’élimination des doublons/angles invalides.

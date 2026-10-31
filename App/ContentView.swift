@@ -100,7 +100,7 @@ struct ExplorerView: View {
                         Text(store.message ?? (store.stations.count >= 600 ? "600 stations affichées · zoome pour affiner" : "\(store.stations.count) stations dans cette zone")).font(.caption).foregroundStyle(.secondary)
                         if !store.location.status.isEmpty { Text(store.location.status).font(.caption) }
                         if !searchMessage.isEmpty { Text(searchMessage).font(.caption) }
-                        if showDirections { Text("Flèches ANFR · jusqu’à 24 stations · pas une couverture").font(.caption2) }
+                        if showDirections { Text("Orientations des stations isolées · après le zoom · pas une couverture").font(.caption2) }
                         Text("Groupes multicolores : plusieurs opérateurs.").font(.caption2).foregroundStyle(.secondary)
                     }
                     Spacer()

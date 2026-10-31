@@ -63,5 +63,20 @@ final class PyloCoreTests: XCTestCase {
         XCTAssertEqual(Geometry.angularDifference(350, 10), 20)
         XCTAssertNil(Geometry.freeSpaceLoss(distanceKM: 0, frequencyMHz: 700))
     }
+    func testOrientationBudgetAndNearestStations() {
+        func station(_ index: Int) -> Station {
+            Station(id: String(index), operatorName: "SFR", latitude: 48 + Double(index)*0.001, longitude: 2, address: "", systems: "LTE 700", status: "En service", updated: "", supportID: "", height: "")
+        }
+        let stations = (0..<100).reversed().map(station)
+        let directions = Dictionary(uniqueKeysWithValues: stations.map { ($0.id, [0.0,60,120,180,240,300,360,Double.nan]) })
+        let plan = OrientationPlan.make(stations: stations, directions: directions, latitude: 48, longitude: 2)
+        XCTAssertEqual(plan.count, OrientationPlan.maximumArrows)
+        XCTAssertEqual(plan.first?.stationID, "0")
+        XCTAssertLessThanOrEqual(Set(plan.map(\.stationID)).count, OrientationPlan.maximumStations)
+        XCTAssertTrue(plan.allSatisfy { $0.azimuth.isFinite && (0..<360).contains($0.azimuth) })
+        let repeated = OrientationPlan.make(stations: [station(0)], directions: ["0": [90,90,90]], latitude: 48, longitude: 2)
+        XCTAssertEqual(repeated.count, 1)
+        XCTAssertTrue(OrientationPlan.make(stations: stations, directions: [:], latitude: 48, longitude: 2).isEmpty)
+    }
     func testECI() { XCTAssertEqual(Radio.enodeB(25601),100); XCTAssertEqual(Radio.sector(25601),1) }
 }

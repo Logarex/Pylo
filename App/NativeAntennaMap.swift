@@ -39,53 +39,74 @@ struct NativeAntennaMap: UIViewRepresentable {
             coordinator.commandID = command.id
             map.setRegion(command.region, animated: true)
         }
-        let ids = Set(stations.map(\.id))
-        if ids != coordinator.stationIDs {
-            let removed = coordinator.annotations.filter { !ids.contains($0.key) }
-            map.removeAnnotations(Array(removed.values))
-            for key in removed.keys { coordinator.annotations.removeValue(forKey: key) }
-            let added = stations.filter { coordinator.annotations[$0.id] == nil }.map(StationAnnotation.init)
-            for annotation in added { coordinator.annotations[annotation.station.id] = annotation }
-            map.addAnnotations(added)
-            coordinator.stationIDs = ids
-        }
-        // One overlay per operator, only a small set of nearby stations. Never rebuild during a gesture.
-        let directionKey = showDirections ? stations.prefix(24).map { $0.id + (directions[$0.id] ?? []).map(String.init(describing:)).joined(separator: ",") }.joined(separator: "|") : ""
-        if coordinator.directionKey != directionKey {
-            coordinator.directionKey = directionKey
-            map.removeOverlays(map.overlays)
-            guard showDirections else { return }
-            let grouped = Dictionary(grouping: stations.prefix(24), by: \.operatorName)
-            for (name, values) in grouped {
-                let lines = values.flatMap { station in
-                    (directions[station.id] ?? []).map { azimuth in
-                        MKPolyline(coordinates: arrow(station, azimuth), count: 5)
-                    }
-                }
-                if !lines.isEmpty {
-                    let overlay = MKMultiPolyline(lines); overlay.title = name
-                    map.addOverlay(overlay, level: .aboveRoads)
-                }
-            }
-        }
+        // A query completing during a pinch must not mutate annotations or overlays.
+        if !coordinator.moving { coordinator.applyStations(map); coordinator.scheduleDirections(map) }
     }
-    private func arrow(_ station: Station, _ azimuth: Double) -> [CLLocationCoordinate2D] {
-        let start = CLLocationCoordinate2D(latitude: station.latitude, longitude: station.longitude)
-        func offset(_ origin: CLLocationCoordinate2D, _ angle: Double, _ km: Double) -> CLLocationCoordinate2D {
-            let radians = angle * .pi / 180
-            return CLLocationCoordinate2D(latitude: origin.latitude + cos(radians)*km/111.32, longitude: origin.longitude + sin(radians)*km/(111.32*max(0.05,cos(origin.latitude * .pi/180))))
-        }
-        let end = offset(start,azimuth,0.25)
-        return [start,end,offset(end,azimuth+150,0.065),end,offset(end,azimuth-150,0.065)]
+    static func dismantleUIView(_ map: MKMapView, coordinator: Coordinator) {
+        coordinator.refreshTask?.cancel()
+        map.delegate = nil
+        map.removeOverlays(map.overlays)
     }
     @MainActor final class Coordinator: NSObject, MKMapViewDelegate {
         var parent: NativeAntennaMap
         var annotations: [String: StationAnnotation] = [:]
         var stationIDs: Set<String> = []
         var commandID: UUID?
-        var directionKey = ""
+        var moving = false
+        var refreshTask: Task<Void, Never>?
+        var orientationOverlay: OrientationOverlay?
+        var renderedArrows: [OrientationArrow] = []
+        var imageCache: [String: UIImage] = [:]
         init(_ parent: NativeAntennaMap) { self.parent = parent }
+        func applyStations(_ map: MKMapView) {
+            let ids = Set(parent.stations.map(\.id))
+            guard ids != stationIDs else { return }
+            let removed = annotations.filter { !ids.contains($0.key) }
+            map.removeAnnotations(Array(removed.values))
+            for key in removed.keys { annotations.removeValue(forKey: key) }
+            let added = parent.stations.filter { annotations[$0.id] == nil }.map(StationAnnotation.init)
+            for annotation in added { annotations[annotation.station.id] = annotation }
+            map.addAnnotations(added)
+            stationIDs = ids
+        }
+        func scheduleDirections(_ map: MKMapView) {
+            refreshTask?.cancel()
+            if !parent.showDirections {
+                if let orientationOverlay { map.removeOverlay(orientationOverlay) }
+                orientationOverlay = nil; renderedArrows = []
+                return
+            }
+            refreshTask = Task { @MainActor [weak self, weak map] in
+                try? await Task.sleep(for: .milliseconds(360))
+                guard !Task.isCancelled, let self, let map, !self.moving else { return }
+                // Dense groups need zooming in first, rather than dozens of overlapping arrows.
+                let visible = self.annotations.values.filter { annotation in
+                    guard map.visibleMapRect.contains(MKMapPoint(annotation.coordinate)),
+                          let view = map.view(for: annotation) else { return false }
+                    return view.superview != nil && !view.isHidden && view.alpha > 0.1
+                }.map(\.station)
+                let arrows = OrientationPlan.make(stations: visible, directions: self.parent.directions, latitude: map.centerCoordinate.latitude, longitude: map.centerCoordinate.longitude)
+                if arrows == self.renderedArrows, let overlay = self.orientationOverlay, overlay.boundingMapRect.contains(map.visibleMapRect) {
+                    map.renderer(for: overlay)?.alpha = 1
+                    return
+                }
+                if let old = self.orientationOverlay { map.removeOverlay(old) }
+                self.renderedArrows = arrows
+                self.orientationOverlay = nil
+                guard !arrows.isEmpty else { return }
+                let overlay = OrientationOverlay(arrows: arrows, rect: map.visibleMapRect)
+                self.orientationOverlay = overlay
+                map.addOverlay(overlay, level: .aboveRoads)
+            }
+        }
+        func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
+            moving = true; refreshTask?.cancel()
+            if let orientationOverlay { mapView.renderer(for: orientationOverlay)?.alpha = 0 }
+        }
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            moving = false
+            applyStations(mapView)
+            scheduleDirections(mapView)
             let region = mapView.region
             Task { @MainActor [weak self] in self?.parent.onRegion(region) }
         }
@@ -117,20 +138,20 @@ struct NativeAntennaMap: UIViewRepresentable {
             mapView.deselectAnnotation(annotation, animated: false)
         }
         func mapView(_ mapView: MKMapView, rendererFor overlay: any MKOverlay) -> MKOverlayRenderer {
-            guard let lines = overlay as? MKMultiPolyline else { return MKOverlayRenderer(overlay: overlay) }
-            let renderer = MKMultiPolylineRenderer(multiPolyline: lines)
-            renderer.strokeColor = UIColor(Palette.operatorColor(lines.title ?? ""))
-            renderer.lineWidth = 5; renderer.lineCap = .round; renderer.lineJoin = .round
-            return renderer
+            guard let orientations = overlay as? OrientationOverlay else { return MKOverlayRenderer(overlay: overlay) }
+            return OrientationRenderer(overlay: orientations)
         }
         private func clusterImage(_ members: [Station]) -> UIImage {
-            let names = Array(Set(members.map(\.operatorName))).sorted()
-            return UIGraphicsImageRenderer(size: CGSize(width: 44,height: 44)).image { context in
+            let groups = Dictionary(grouping: members, by: \.operatorName).mapValues(\.count)
+            let names = groups.keys.sorted()
+            let key = String(UIScreen.main.traitCollection.userInterfaceStyle.rawValue) + names.map { "\($0):\(groups[$0] ?? 0)" }.joined(separator: "|")
+            if let cached = imageCache[key] { return cached }
+            let image = UIGraphicsImageRenderer(size: CGSize(width: 44,height: 44)).image { context in
                 let circle = CGRect(x: 2,y: 2,width: 40,height: 40)
                 UIColor.secondarySystemGroupedBackground.setFill(); context.cgContext.fillEllipse(in: circle)
                 var start = -Double.pi/2
                 for name in names {
-                    let end = start + Double(members.filter { $0.operatorName == name }.count) / Double(max(1,members.count)) * 2 * .pi
+                    let end = start + Double(groups[name] ?? 0) / Double(max(1,members.count)) * 2 * .pi
                     context.cgContext.setStrokeColor(UIColor(Palette.operatorColor(name)).cgColor)
                     context.cgContext.setLineWidth(5)
                     context.cgContext.addArc(center: CGPoint(x:22,y:22), radius:19,startAngle:start,endAngle:end,clockwise:false)
@@ -139,6 +160,46 @@ struct NativeAntennaMap: UIViewRepresentable {
                 let text = NSAttributedString(string: String(members.count),attributes:[.font:UIFont.systemFont(ofSize:14,weight:.bold),.foregroundColor:UIColor.label])
                 let size = text.size(); text.draw(at:CGPoint(x:22-size.width/2,y:22-size.height/2))
             }
+            if imageCache.count >= 200 { imageCache.removeAll(keepingCapacity: true) }
+            imageCache[key] = image
+            return image
+        }
+    }
+}
+
+/// One lightweight layer; arrow length stays constant on screen instead of expanding on zoom.
+final class OrientationOverlay: NSObject, MKOverlay {
+    let arrows: [OrientationArrow]
+    let boundingMapRect: MKMapRect
+    var coordinate: CLLocationCoordinate2D { MKMapPoint(x: boundingMapRect.midX, y: boundingMapRect.midY).coordinate }
+    init(arrows: [OrientationArrow], rect: MKMapRect) { self.arrows = arrows; boundingMapRect = rect.insetBy(dx: -rect.width * 0.1, dy: -rect.height * 0.1) }
+}
+final class OrientationRenderer: MKOverlayRenderer {
+    private let arrows: [OrientationArrow]
+    private let colors: [CGColor]
+    init(overlay: OrientationOverlay) {
+        arrows = overlay.arrows
+        colors = overlay.arrows.map { UIColor(Palette.operatorColor($0.operatorName)).cgColor }
+        super.init(overlay: overlay)
+    }
+    override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
+        guard zoomScale.isFinite, zoomScale > 0 else { return }
+        let scale = 1 / zoomScale
+        context.setLineWidth(1.6 * scale)
+        context.setLineCap(.round); context.setLineJoin(.round)
+        let length = 30 * scale, head = 5 * scale, inset = 10 * scale
+        for (index, arrow) in arrows.enumerated() {
+            let origin = point(for: MKMapPoint(CLLocationCoordinate2D(latitude: arrow.latitude, longitude: arrow.longitude)))
+            let radians = arrow.azimuth * .pi / 180
+            let dx = sin(radians), dy = -cos(radians)
+            let start = CGPoint(x: origin.x + dx * inset, y: origin.y + dy * inset)
+            let end = CGPoint(x: start.x + dx * length, y: start.y + dy * length)
+            context.setStrokeColor(colors[index])
+            context.move(to: start); context.addLine(to: end)
+            context.move(to: CGPoint(x: end.x - dx * head + dy * head * 0.6, y: end.y - dy * head - dx * head * 0.6))
+            context.addLine(to: end)
+            context.addLine(to: CGPoint(x: end.x - dx * head - dy * head * 0.6, y: end.y - dy * head + dx * head * 0.6))
+            context.strokePath()
         }
     }
 }
