@@ -1,98 +1,158 @@
-# Pylo
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="App/Assets.xcassets/Brand.imageset/pylo-dark.png">
+    <img src="App/Assets.xcassets/Brand.imageset/pylo-light.png" alt="Logo de Pylo" width="100" height="100">
+  </picture>
+</p>
 
-Le réseau mobile, autour de toi.
+<h1 align="center">Pylo</h1>
+<p align="center"><strong>Le réseau mobile, autour de toi.</strong><br>2G · 3G · 4G · 5G</p>
 
-Je suis étudiant et j’ai créé Pylo pour comprendre les antennes que je croise et ce qui se cache derrière les logos 2G, 3G, 4G et 5G. L’idée : une app gratuite, sans pub, sans compte et avec du code simple à reprendre.
+Je suis étudiant et j’ai créé Pylo pour comprendre les antennes autour de moi et ce qui se cache derrière les logos de réseau de mon iPhone. L’idée : tout retrouver dans une app simple, gratuite, sans pub et sans compte.
 
-Le code est sous licence MIT. **Le dépôt reste privé pendant le développement** : sa publication en open source viendra quand je le rendrai public. Les données appartiennent à l’ANFR et sont réutilisées sous Licence Ouverte 2.0.
+Pylo est écrite en Swift, avec une interface native, des données ANFR consultables hors ligne et un guide pour apprendre à lire Field Test sans se perdre dans les acronymes.
 
-[Aperçu sur iPhone](docs/pylo-iphone.png)
+**Gratuite · développée par un étudiant · code sous licence MIT.** Le dépôt reste privé pendant le développement ; l’ouverture publique du code viendra ensuite.
 
-## Dans l’application
+## Un aperçu de l’app
 
-- Carte Apple Plans, antennes regroupées pour garder la carte lisible, recherche d’adresse, localisation à la demande.
-- Stations ANFR réelles, filtres 2G / 3G / 4G / 5G et opérateurs.
-- Fiches par bande : état propre, date ANFR, directions, hauteur et numéro du support.
-- Couleurs par opérateur, zoom +/−, axes d’orientation ANFR et boussole.
-- Distance et cap à la demande, avec explications honnêtes sur la réception.
-- Favoris locaux, partage et itinéraires.
-- Guide Field Test pas à pas, dictionnaire consultable et calcul ECI LTE.
-- Informations publiques iOS : type de connexion, radio déclarée par ligne et mode données réduites.
-- Statistiques nationales : stations, supports, systèmes, opérateurs, générations, fréquences et dates déclarées.
-- Petit guide pour comprendre les générations, fréquences et indicateurs radio.
-- Base embarquée consultable hors ligne, import de mises à jour depuis Fichiers.
-- SwiftUI natif, clair/sombre, Dynamic Type, Liquid Glass sur iOS 26+, matériaux système sur iOS 18.
+<p align="center">
+  <img src="docs/pylo-iphone.png" alt="Pylo : carte des stations ANFR, couleurs par opérateur, filtres 2G à 5G et commandes de zoom" width="310">
+</p>
 
-## Ouvrir le projet
+*Capture de la version actuelle dans le simulateur iPhone. Les stations affichées proviennent de la base ANFR ; ce ne sont pas des données de démonstration.*
 
-Ouvre `Pylo.xcodeproj` avec Xcode 26 ou plus récent. Sélectionne le schéma **Pylo**, puis un simulateur iPhone. Aucun paquet tiers à installer. iOS 18 minimum. Pour ton iPhone, choisis ton équipe dans Signing & Capabilities et adapte l’identifiant d’application si nécessaire.
+## Ce qu’on peut faire avec Pylo
 
-Le fichier ANFR du 29 octobre 2026 est embarqué : ce ne sont pas des antennes de démonstration. Les métadonnées de cette copie se trouvent dans `docs/anfr-source.json`.
+### Explorer les antennes
 
-## Une mise à jour par mois, sans serveur
+- Naviguer sur une carte Apple Plans, chercher une ville ou une adresse et se placer autour de sa position.
+- Filtrer les stations par **2G, 3G, 4G, 5G** et par opérateur, y compris les opérateurs d’outre-mer présents dans la source.
+- Repérer les opérateurs grâce à leurs couleurs : **Orange en orange, Free en anthracite, SFR en rouge et Bouygues Telecom en turquoise**. Les regroupements mélangent les couleurs des opérateurs présents.
+- Zoomer avec les gestes habituels ou les boutons **+ / −**.
+- Garder des stations en favoris, les partager et ouvrir un itinéraire dans Plans.
 
-Le workflow **Mise à jour ANFR** tourne le 3 de chaque mois, à 07:23 UTC, et peut être lancé à la main dans Actions. Il interroge le catalogue officiel, découvre la dernière archive, la télécharge, valide les colonnes et les coordonnées, regroupe les systèmes par station et construit une base SQLite indexée.
+La carte utilise les regroupements natifs de MapKit. Elle affiche au maximum **600 stations par zone** : il suffit de zoomer pour affiner.
 
-La base est publiée dans une **Release privée** avec sa source et son empreinte SHA-256. Depuis l’iPhone connecté à ton compte GitHub, télécharge `antennas.sqlite`, puis importe ce fichier dans Pylo → Données. L’ancienne base n’est remplacée qu’après validation. Une erreur dans la source fait échouer le workflow ; consulte les notifications d’échec GitHub Actions.
+### Comprendre chaque station
 
-Cette étape d’import est volontaire : une app ne peut pas télécharger anonymement les Releases d’un dépôt privé. Aucun jeton personnel n’est embarqué. Quand le dépôt sera public, on pourra ajouter un téléchargement automatique depuis un manifeste public versionné, avec contrôle d’intégrité. La version actuelle ne prétend pas déjà faire ce téléchargement automatique.
+Les fiches séparent les informations au lieu de mélanger toutes les bandes dans une seule ligne :
 
-Pour reconstruire toi-même sur Mac :
+| Information | Ce que Pylo affiche |
+| --- | --- |
+| Réseaux et bandes | GSM, UMTS, LTE, NR et leurs bandes en MHz, regroupés par génération |
+| État | L’état déclaré de chaque système : projet approuvé, en service, techniquement opérationnel… |
+| Dates | La date du système dans la source et la date de publication des données |
+| Supports | Les identifiants des supports physiques, leur hauteur renseignée et leurs coordonnées |
+| Orientation | Les azimuts ANFR et un schéma avec les directions déclarées |
+| Depuis ta position | La distance à vol d’oiseau, le cap vers la station et le cap de l’iPhone lorsque disponible |
+
+Une station peut être rattachée à plusieurs supports : Pylo les conserve et les distingue. Le repère de carte et la distance utilisent le premier support enregistré ; la fiche liste les supports disponibles.
+
+Les flèches d’orientation sur la carte sont petites et gardent la même taille à l’écran. Elles s’effacent pendant le déplacement ou le zoom, puis reviennent après l’arrêt. Pour alléger le rendu, elles concernent seulement les stations individuelles visibles : **12 stations et 48 flèches maximum**, avec six directions au plus par station sur la carte. La fiche garde les directions complètes.
+
+**Ces flèches montrent une orientation, pas une portée ni une zone de couverture.** La distance, les murs, le relief, les interférences et la charge du réseau jouent tous sur la réception. Pylo explique ces limites et ne transforme pas une distance en faux niveau de signal.
+
+### Lire Field Test, simplement
+
+Le guide remplace le carnet de relevés manuels. Il explique comment ouvrir le menu de l’iPhone, quoi regarder en premier et comment interpréter les champs courants :
+
+- **Puissance** : RSRP, SS-RSRP, CSI-RSRP, RSSI, RSCP.
+- **Qualité et bruit** : RSRQ, SINR, SNR, Ec/No et Ec/Io, avec des repères indicatifs.
+- **Technologie** : RAT, GSM, GPRS, EDGE, UMTS/WCDMA, HSPA/HSPA+, LTE/LTE-Advanced, NR, NSA et SA.
+- **Bandes et canaux** : Band, ARFCN, UARFCN, EARFCN et NR-ARFCN.
+- **Identifiants** : PCI, Cell ID, ECI, NCI, eNodeB, gNodeB, RNC, MCC/MNC, TAC et LAC.
+- **Pour aller plus loin** : agrégation de porteuses, PCC/SCC, largeur de canal, modulation, CQI, MCS et Timing Advance.
+
+Un dictionnaire permet de rechercher un terme. Le décodeur **ECI LTE** accepte le décimal ou l’hexadécimal et sépare l’eNodeB de l’identifiant local de cellule. Le guide explique ensuite comment chercher une correspondance documentée avec un site.
+
+**La station la plus proche n’est pas forcément celle utilisée par l’iPhone.** Un PCI seul ne permet pas de l’identifier et un identifiant réseau n’est pas un identifiant ANFR.
+
+### Voir les informations accessibles sur iPhone
+
+Pylo affiche le type de connexion internet, les technologies radio déclarées par iOS pour les lignes disponibles et l’état du mode données réduites. La localisation et la boussole sont utilisées à la demande pour les distances et les directions.
+
+iOS ne donne pas aux apps l’accès public à la cellule connectée, aux bandes actives ou aux mesures radio brutes RSRP/RSRQ/SINR. Les données disponibles dépendent de l’appareil et du réseau ; sur simulateur, les informations cellulaires sont généralement absentes. Les menus Field Test changent aussi selon le modem, iOS et l’opérateur.
+
+### Explorer les statistiques
+
+La page Statistiques analyse **toute la base**, indépendamment du zoom de la carte, avec un filtre par opérateur :
+
+- Nombre de stations, de supports physiques distincts, de systèmes et d’opérateurs.
+- Diagramme en anneau de la répartition des stations par opérateur.
+- Histogrammes par génération et par bande de fréquence.
+- Graphique des dates de systèmes déclarées sur les douze derniers mois de la source.
+- Apparitions et retraits de stations entre deux publications compatibles, lorsque la comparaison est disponible.
+
+La copie embarquée du **29 octobre 2026** contient **139 406 stations**, **72 940 supports distincts** et **820 366 couples station–système**.
+
+Une même station peut compter plusieurs générations et plusieurs bandes : les graphiques ne s’additionnent pas tous au total des stations. Les dates des systèmes ne sont pas des dates d’ajout au catalogue. La première copie enrichie initialise l’historique ; Pylo ne fabrique pas de chiffre pour les « nouvelles antennes du mois » lorsqu’il manque une copie de comparaison.
+
+## Les mises à jour ANFR
+
+Un workflow GitHub Actions tourne **le 3 de chaque mois à 07:23 UTC** et peut aussi être lancé manuellement. Il découvre la dernière archive dans le catalogue officiel, la télécharge, valide son format et construit la base SQLite.
+
+La publication privée contient `antennas.sqlite`, les métadonnées de source et une empreinte SHA-256. Pour mettre l’app à jour :
+
+1. Ouvre les [publications du projet](https://github.com/Logarex/pylo/releases) en étant connecté à ton compte GitHub.
+2. Télécharge une base récente au format Pylo 2, puis ouvre **Pylo → Le projet → Importer une mise à jour ANFR**.
+3. Choisis le fichier dans Fichiers. Pylo le valide avant de remplacer la copie locale.
+
+Le pipeline compare également les identifiants avec la publication précédente lorsqu’elle utilise le même schéma. L’ancien format, qui excluait la 2G, ne sert pas à calculer de faux ajouts.
+
+L’import sur l’iPhone reste manuel tant que le dépôt est privé : aucun jeton GitHub personnel n’est intégré dans l’app. Le téléchargement automatique depuis une source publique pourra être ajouté après l’ouverture du dépôt.
+
+La base embarquée est compressée : environ **36 Mo** dans le projet et **146 Mo** une fois décompressée dans le cache de l’app. Les données de stations se consultent hors ligne ; le fond de carte, les recherches et les itinéraires peuvent nécessiter internet.
+
+## Installer et lancer le projet
+
+Il faut **Xcode 26 ou plus récent** et **iOS 18 minimum**.
+
+1. Clone le dépôt et ouvre `Pylo.xcodeproj`.
+2. Sélectionne le schéma **Pylo**, puis un simulateur iPhone.
+3. Pour ton iPhone, choisis ton équipe dans **Signing & Capabilities** et adapte l’identifiant d’application si nécessaire.
+
+Aucun paquet tiers à installer. L’app suit les thèmes clair/sombre et utilise Liquid Glass sur iOS 26+, avec des matériaux système sur les versions antérieures.
+
+Pour vérifier le cœur Swift et reconstruire les données sur Mac :
 
 ```sh
+swift test
 mkdir -p output
 swift run -c release anfr-import output/antennas.sqlite
-swift test
 ```
 
-Pour importer une archive déjà extraite :
+Un CSV officiel déjà extrait peut aussi être fourni :
 
 ```sh
 swift run -c release anfr-import output/antennas.sqlite /chemin/observatoire.csv
 ```
 
-## Architecture
+## Une architecture simple à reprendre
 
-`App/` contient les vues SwiftUI et l’état de l’application. `Sources/PyloCore/` contient les modèles, le lecteur CSV et SQLite, partagés avec l’importeur. `App/StatisticsView.swift` utilise Swift Charts sur l’intégralité de la base, hors du fil principal. `Sources/ANFRImport/` contient l’outil de maintenance en Swift. `Tests/` vérifie le parsing, les regroupements, les filtres et le calcul ECI. Les workflows construisent les données et vérifient le projet.
+| Dossier | Rôle |
+| --- | --- |
+| `App/` | Interface SwiftUI, carte native MapKit, fiches, Field Test et graphiques Swift Charts |
+| `Sources/PyloCore/` | Modèles, CSV, SQLite, géométrie et limites de rendu des orientations |
+| `Sources/ANFRImport/` | Outil de récupération et de préparation des données, écrit en Swift |
+| `Tests/` | Parsing, filtres, statistiques, comparaisons, supports multiples et orientations |
+| `.github/workflows/` | Vérifications et mise à jour mensuelle ANFR |
 
-L’app compile directement les fichiers du cœur ; Swift Package Manager construit ces mêmes fichiers pour les tests et l’outil Mac. Pas de dépendance tierce, pas de serveur, pas de compte utilisateur. SQLite est fourni par le système. L’outil Mac utilise l’utilitaire système unzip pour décompresser les archives officielles.
+Les fichiers du cœur sont partagés entre l’app, les tests et l’importeur. SQLite, zlib et la décompression ZIP sur Mac reposent sur les outils du système. Pas de serveur Pylo à maintenir.
 
-## Limites honnêtes
+Les recherches de carte s’exécutent hors du fil principal après la fin du mouvement. Les repères sont réutilisés, les images de groupes sont mises en cache et les orientations utilisent une seule couche de dessin bornée. La fluidité et les comportements radio restent à vérifier sur les différents modèles d’iPhone avant une distribution TestFlight ou App Store.
 
-iOS n’expose pas d’API publique pour lire les mesures radio brutes, la cellule courante ou le menu Field Test. Pylo propose un guide détaillé et un décodeur ECI ; aucune valeur n’est inventée. L’ECI/eNodeB n’est pas un identifiant ANFR. Pas de rapprochement automatique supposé entre les deux.
+## Vie privée, sources et liens
 
-La carte affiche au maximum 600 stations par zone : zoome pour affiner. Il ne s’agit pas d’une carte de couverture ni d’un test de débit. Les états ANFR restent ceux de la source ; « autorisé » ne veut pas dire « en service ». Les fonds Plans, recherches et itinéraires nécessitent parfois internet. Les fonctions doivent encore être essayées sur un vrai iPhone avant une distribution TestFlight/App Store.
+Les favoris restent sur l’appareil. Pylo ne conserve pas la position et le cap et ne les envoie pas à un serveur Pylo. Apple Plans traite les recherches et les itinéraires selon ses propres conditions.
 
-## Sources
+- [Données officielles ANFR sur les réseaux mobiles](https://www.data.gouv.fr/datasets/donnees-sur-les-reseaux-mobiles) — Licence Ouverte 2.0.
+- [Observatoire ANFR](https://www.anfr.fr/gestion-des-frequences-sites/lobservatoire).
+- [API du catalogue utilisée par l’importeur](https://www.data.gouv.fr/api/1/datasets/6ab291cf426d615c84196260/).
+- [Apple : limites d’accès aux mesures de signal](https://developer.apple.com/forums/thread/721067) et [technologie radio déclarée par CoreTelephony](https://developer.apple.com/documentation/coretelephony/cttelephonynetworkinfo/servicecurrentradioaccesstechnology).
+- [Repères de lecture des mesures, Teltonika](https://wiki.teltonika-networks.com/view/Mobile_Signal_Strength_Recommendations) — indicatifs, sans garantie de débit.
+- [RNC Mobile](https://www.rncmobile.net/) — un lien vers leur travail communautaire d’identification. Une proposition de contact est préparée ; **aucun partenariat n’est confirmé et leur base n’est pas intégrée**.
 
-- [Catalogue officiel ANFR](https://www.data.gouv.fr/datasets/donnees-sur-les-reseaux-mobiles)
-- [API du catalogue utilisée par l’importeur](https://www.data.gouv.fr/api/1/datasets/6ab291cf426d615c84196260/)
-- [Observatoire ANFR](https://www.anfr.fr/gestion-des-frequences-sites/lobservatoire)
-- [Limitation des API de mesure radio, Apple](https://developer.apple.com/forums/thread/721067)
-- [Liquid Glass, Apple](https://developer.apple.com/documentation/swiftui/applying-liquid-glass-to-custom-views)
+Pour reprendre le projet : [maintenance](docs/MAINTENANCE.md), [RNC Mobile et proposition de contact](docs/RNC-MOBILE.md), [logos clair/sombre](docs/ASSETS.md) et [métadonnées de la copie ANFR](docs/anfr-source.json).
 
-Pylo n’est affiliée ni à Apple, ni à l’ANFR, ni aux opérateurs. Les logos de référence ont été fournis par l’auteur du projet.
-
-## Version 0.2 — lire les données correctement
-
-Le fichier embarqué `App/Resources/antennas.sqlite.gz` est compressé (environ 36 Mo). Au premier lancement, le cœur Swift le décompresse dans le cache de l’app (environ 146 Mo). Une mise à jour choisie par l’utilisateur reste dans Documents. Le fichier SQLite brut local est ignoré par Git ; il sert à la maintenance.
-
-Le schéma 2 conserve chaque couple station–système : technologie, bande, état, date, azimuts. Il ajoute les identifiants de supports et leur hauteur. Les directions affichées sont des axes, sans largeur de faisceau inventée. Les orientations de la carte concernent au plus 12 stations individuelles visibles ; la fiche contient toutes les directions renseignées pour la station.
-
-Le pipeline mensuel récupère la publication précédente et compare les identifiants. Une station peut avoir plusieurs supports : ils sont conservés séparément et comptés distinctement. Les directions de la carte concernent le support du repère ; les fiches regroupent les azimuts de la station et listent ses supports.
-
-La première publication de schéma 2 initialise l’historique : une base de schéma 1 n’est pas comparable, car elle excluait la 2G. Les apparitions/retraits sont toujours associés aux deux dates des copies ; ce ne sont pas des antennes forcément construites/démontées pendant le mois. Les graphiques de dates utilisent `emr_dt` et sont explicitement séparés de cette comparaison.
-
-Le carnet manuel a été remplacé par le guide demandé. Les anciens relevés restent conservés dans le stockage de l’app mais ne sont plus présentés dans l’interface.
-
-RNC Mobile : lien et proposition de contact dans `docs/RNC-MOBILE.md`. Aucune récupération de leur base, API inventée ou annonce de partenariat. Logos et méthode de préparation : `docs/ASSETS.md`.
-
-Sources complémentaires : [CoreTelephony](https://developer.apple.com/documentation/coretelephony/cttelephonynetworkinfo/servicecurrentradioaccesstechnology), [repères de mesure Teltonika](https://wiki.teltonika-networks.com/view/Mobile_Signal_Strength_Recommendations), [définition des mesures LTE ETSI](https://www.etsi.org/deliver/etsi_ts/136200_136299/136214/08.03.00_60/ts_136214v080300p.pdf).
-
-La carte utilise MKMapView et ses regroupements natifs pour conserver les gestes de zoom fluides. Les requêtes sont décalées de 300 ms après la fin du mouvement ; les flèches sont limitées à 12 stations individuelles et 48 directions dans une seule couche de dessin. Leur taille est constante à l’écran et ne représente pas une portée radio.
-
-### Orientations et fluidité
-
-Les orientations de la carte sont désormais dessinées dans une seule couche légère, avec des flèches de 30 points et un trait de 1,6 point, indépendants du niveau de zoom. Elles s’effacent pendant le mouvement et reviennent après 360 ms de repos. Seuls les marqueurs individuels visibles sont concernés, avec au plus 12 stations et 48 flèches au total (six directions maximum par station sur la carte). Les directions complètes restent consultables dans la fiche.
-
-Les mises à jour de marqueurs sont différées pendant un geste. Les images de regroupement sont réutilisées dans un cache borné à 200 entrées. Le plan d’orientations est testé pour sa limite, son ordre de proximité et l’élimination des doublons/angles invalides.
+Le code est sous [licence MIT](LICENSE). Les données ANFR gardent leur Licence Ouverte 2.0 ; les logos fournis restent la propriété de leur auteur. Pylo n’est affiliée ni à Apple, ni à l’ANFR, ni aux opérateurs.
