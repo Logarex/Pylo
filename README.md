@@ -12,7 +12,7 @@ Je suis étudiant et j’ai créé Pylo pour comprendre les antennes autour de m
 
 Pylo est écrite en Swift, avec une interface native, des données ANFR consultables hors ligne et un guide pour apprendre à lire Field Test sans se perdre dans les acronymes.
 
-**Gratuite · développée par un étudiant · code sous licence MIT.** Le dépôt reste privé pendant le développement ; l’ouverture publique du code viendra ensuite.
+**Gratuite · développée par un étudiant · code sous licence GPL-3.0.** Le dépôt reste privé pendant le développement ; l’ouverture publique du code viendra ensuite.
 
 ## Un aperçu de l’app
 
@@ -155,4 +155,4 @@ Les favoris restent sur l’appareil. Pylo ne conserve pas la position et le cap
 
 Pour reprendre le projet : [maintenance](docs/MAINTENANCE.md), [RNC Mobile et proposition de contact](docs/RNC-MOBILE.md), [logos clair/sombre](docs/ASSETS.md) et [métadonnées de la copie ANFR](docs/anfr-source.json).
 
-Le code est sous [licence MIT](LICENSE). Les données ANFR gardent leur Licence Ouverte 2.0 ; les logos fournis restent la propriété de leur auteur. Pylo n’est affiliée ni à Apple, ni à l’ANFR, ni aux opérateurs.
+Le code original de Pylo est sous [licence GNU GPL-3.0](LICENSE) (`GPL-3.0-only`). Les attributions et le périmètre sont précisés dans [NOTICE.md](NOTICE.md). Les données ANFR gardent leur Licence Ouverte 2.0 ; les logos fournis restent la propriété de leur auteur. Pylo n’est affiliée ni à Apple, ni à l’ANFR, ni aux opérateurs.

@@ -32,7 +32,7 @@ struct DataView: View {
                 Section {
                     Image("Brand").resizable().scaledToFit().frame(height: 100).frame(maxWidth: .infinity).accessibilityLabel("Logo Pylo")
                     Text("Pylo").font(.largeTitle.bold())
-                    Text("Gratuite. Code sous licence libre. Développée par un étudiant.").font(.headline)
+                    Text("Gratuite. Code sous licence GPL-3.0. Développée par un étudiant.").font(.headline)
                     Text("J’aime comprendre comment le réseau fonctionne. Alors j’ai créé Pylo : une app simple pour explorer les antennes et apprendre au passage. Pas de pub, pas de compte, pas de suivi.")
                     Text("Le dépôt est privé pendant le développement. Son ouverture publique viendra ensuite.").font(.footnote).foregroundStyle(.secondary)
                 }
