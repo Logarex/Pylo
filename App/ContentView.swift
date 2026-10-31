@@ -107,6 +107,7 @@ struct ExplorerView: View {
                 }.padding(18).pyloGlass().padding()
             }
             .navigationTitle("Pylo").navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .sheet(item: $selected) { cluster in
                 if cluster.stations.count == 1, let station = cluster.stations.first {
                     StationDetail(station: station).presentationDetents([.medium,.large])
