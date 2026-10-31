@@ -6,9 +6,11 @@ Je suis étudiant et j’ai créé Pylo pour comprendre les antennes que je croi
 
 Le code est sous licence MIT. **Le dépôt reste privé pendant le développement** : sa publication en open source viendra quand je le rendrai public. Les données appartiennent à l’ANFR et sont réutilisées sous Licence Ouverte 2.0.
 
+[Aperçu sur iPhone](docs/pylo-iphone.png)
+
 ## Dans l’application
 
-- Carte Apple Plans, recherche d’adresse, localisation à la demande.
+- Carte Apple Plans, antennes regroupées pour garder la carte lisible, recherche d’adresse, localisation à la demande.
 - Stations ANFR réelles, filtres 3G / 4G / 5G et opérateurs.
 - Bandes, état déclaré, coordonnées, adresse et date de mise à jour.
 - Favoris locaux, partage et itinéraires.

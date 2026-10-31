@@ -31,10 +31,16 @@ struct StationRow: View {
         }.padding(.vertical, 5)
     }
 }
+struct StationCluster: Identifiable {
+    let id: String
+    let stations: [Station]
+    var latitude: Double { stations.reduce(0) { $0 + $1.latitude } / Double(stations.count) }
+    var longitude: Double { stations.reduce(0) { $0 + $1.longitude } / Double(stations.count) }
+}
 struct ExplorerView: View {
     @Environment(AppStore.self) private var store
     @State private var position: MapCameraPosition = .region(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522), span: MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06)))
-    @State private var selected: Station?
+    @State private var selected: StationCluster?
     @State private var search = ""
     @State private var searchMessage = ""
     @State private var location = LocationService()
@@ -43,11 +49,14 @@ struct ExplorerView: View {
         NavigationStack {
             Map(position: $position) {
                 UserAnnotation()
-                ForEach(store.stations) { station in
-                    Annotation(station.operatorName.capitalized, coordinate: CLLocationCoordinate2D(latitude: station.latitude, longitude: station.longitude)) {
-                        Button { selected = station } label: {
-                            Image(systemName: "antenna.radiowaves.left.and.right").font(.caption.bold()).padding(10).foregroundStyle(.white).background(.blue.gradient, in: Circle())
-                        }.accessibilityLabel("Antenne \(station.operatorName), \(station.address)")
+                ForEach(clusters) { cluster in
+                    Annotation("", coordinate: CLLocationCoordinate2D(latitude: cluster.latitude, longitude: cluster.longitude)) {
+                        Button { selected = cluster } label: {
+                            Group {
+                                if cluster.stations.count > 1 { Text("\(cluster.stations.count)").font(.caption.bold().monospacedDigit()) }
+                                else { Image(systemName: "antenna.radiowaves.left.and.right").font(.caption.bold()) }
+                            }.frame(width: 34, height: 34).foregroundStyle(.white).background(.blue.gradient, in: Circle()).overlay(Circle().stroke(.white.opacity(0.85), lineWidth: 2)).shadow(color: .black.opacity(0.15), radius: 3, y: 2)
+                        }.accessibilityLabel("\(cluster.stations.count) station(s). Afficher les détails.")
                     }
                 }
             }
@@ -84,7 +93,16 @@ struct ExplorerView: View {
                 }.padding(18).pyloGlass().padding()
             }
             .navigationTitle("pylo").navigationBarTitleDisplayMode(.inline)
-            .sheet(item: $selected) { StationDetail(station: $0).presentationDetents([.medium,.large]) }
+            .sheet(item: $selected) { cluster in
+                if cluster.stations.count == 1, let station = cluster.stations.first {
+                    StationDetail(station: station).presentationDetents([.medium,.large])
+                } else {
+                    NavigationStack {
+                        List(cluster.stations) { station in NavigationLink { StationDetail(station: station) } label: { StationRow(station: station) } }
+                            .navigationTitle("\(cluster.stations.count) stations proches").navigationBarTitleDisplayMode(.inline)
+                    }.presentationDetents([.medium,.large])
+                }
+            }
             .task { await store.load() }
             .onChange(of: store.generation) { Task { await store.load() } }
             .onChange(of: store.operatorName) { Task { await store.load() } }
@@ -92,6 +110,14 @@ struct ExplorerView: View {
                 if let c = location.coordinate { position = .region(MKCoordinateRegion(center: c, span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04))) }
             }
         }
+    }
+    private var clusters: [StationCluster] {
+        let latStep = max(store.region.span.latitudeDelta / 9, 0.00005)
+        let lonStep = max(store.region.span.longitudeDelta / 7, 0.00005)
+        let groups = Dictionary(grouping: store.stations) { station in
+            "\(Int(floor(station.latitude / latStep))):\(Int(floor(station.longitude / lonStep)))"
+        }
+        return groups.map { StationCluster(id: $0.key, stations: $0.value) }.sorted { $0.id < $1.id }
     }
     private func find() async {
         guard !search.trimmingCharacters(in: .whitespaces).isEmpty else { return }
