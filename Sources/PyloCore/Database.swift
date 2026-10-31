@@ -44,7 +44,7 @@ public final class AntennaDatabase {
             ANFRSourceSupport(id: $0[0], details: try JSONDecoder().decode(ANFRSupportDetails.self, from: Data($0[1].utf8)), records: try JSONDecoder().decode([ANFRSourceRecord].self,from: Data($0[2].utf8)))
         }
     }
-    public func finishImport() throws { try execute("COMMIT; CREATE INDEX coordinates ON stations(latitude,longitude); CREATE INDEX system_station ON systems(stationID); PRAGMA user_version=2; VACUUM;") }
+    public func finishImport() throws { try execute("COMMIT; CREATE INDEX coordinates ON stations(latitude,longitude); CREATE INDEX system_station ON systems(stationID); CREATE INDEX station_operator ON stations(operatorName); INSERT OR REPLACE INTO metadata SELECT 'sourceDate',max(substr(updated,1,10)) FROM stations; PRAGMA user_version=2; VACUUM;") }
     public func stations(south: Double = -90, north: Double = 90, west: Double = -180, east: Double = 180, generation: String = "", operatorName: String = "", limit: Int = 600) throws -> [Station] {
         let sql = "SELECT * FROM stations WHERE latitude BETWEEN \(south) AND \(north) AND longitude BETWEEN \(west) AND \(east) \(operatorName.isEmpty ? "" : "AND operatorName=" + quote(operatorName)) \(generation.isEmpty ? "" : "AND systems LIKE " + quote("%" + (generation == "5G" ? "5G" : generation == "4G" ? "LTE" : generation == "3G" ? "UMTS" : "GSM") + "%")) ORDER BY id LIMIT \(max(1, min(limit, 200000)))"
         var stmt: OpaquePointer?
@@ -101,7 +101,9 @@ public final class AntennaDatabase {
         })
     }
     public func sourceDate() throws -> String {
-        try rows("SELECT max(substr(updated,1,10)) FROM stations").first?.first ?? ""
+        if !(try rows("SELECT name FROM sqlite_master WHERE name='metadata'")).isEmpty,
+           let value = try rows("SELECT value FROM metadata WHERE key='sourceDate'").first?.first, !value.isEmpty { return value }
+        return try rows("SELECT max(substr(updated,1,10)) FROM stations").first?.first ?? ""
     }
     public func recordComparison(previous: URL) throws {
         let old = try AntennaDatabase(url: previous)
@@ -154,7 +156,23 @@ public final class AntennaDatabase {
         func count(_ sql: String) throws -> Int { Int(try rows(sql).first?.first ?? "0") ?? 0 }
         func items(_ sql: String) throws -> [StatItem] { try rows(sql).map { StatItem(label: $0[0], count: Int($0[1]) ?? 0) } }
         let meta = Dictionary(uniqueKeysWithValues: try rows("SELECT key,value FROM metadata").map { ($0[0],$0[1]) })
-        let date = try rows("SELECT max(substr(updated,1,10)) FROM stations").first?.first ?? ""
+        let date = try sourceDate()
+        let declared = try items("SELECT substr(deployment,1,7),count(*) FROM systems WHERE length(deployment)>=10 AND substr(deployment,1,7) >= strftime('%Y-%m'," + quote(date) + ",'start of month','-11 months') AND substr(deployment,1,7) <= substr(" + quote(date) + ",1,7)" + joinFilter + " GROUP BY substr(deployment,1,7) ORDER BY substr(deployment,1,7)")
+        let monthly = Dictionary(uniqueKeysWithValues: declared.map { ($0.label, $0.count) })
+        let components = date.split(separator: "-").compactMap { Int($0) }
+        var timeline: [StatItem] = []
+        if components.count == 3 {
+            var calendar = Calendar(identifier: .gregorian); calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+            if let end = calendar.date(from: DateComponents(year: components[0], month: components[1], day: 1)) {
+                for offset in -11...0 {
+                    if let month = calendar.date(byAdding: .month, value: offset, to: end) {
+                        let parts = calendar.dateComponents([.year,.month], from: month)
+                        let key = String(format: "%04d-%02d", parts.year!, parts.month!)
+                        timeline.append(StatItem(label: key, count: monthly[key] ?? 0))
+                    }
+                }
+            }
+        }
         return try NetworkStatistics(
             stationCount: count("SELECT count(*) FROM stations" + filter),
             supportCount: count("SELECT count(DISTINCT NULLIF(supportID,'')) FROM supports WHERE 1=1" + joinFilter),
@@ -163,7 +181,7 @@ public final class AntennaDatabase {
             operators: items("SELECT operatorName,count(*) FROM stations" + filter + " GROUP BY operatorName ORDER BY count(*) DESC"),
             generations: items("SELECT generation,count(DISTINCT stationID) FROM systems WHERE 1=1" + joinFilter + " GROUP BY generation ORDER BY generation"),
             frequencies: items("SELECT frequency,count(*) FROM systems WHERE 1=1" + joinFilter + " GROUP BY frequency ORDER BY CAST(frequency AS REAL)"),
-            deployments: items("SELECT substr(deployment,1,7),count(*) FROM systems WHERE length(deployment)>=10 AND substr(deployment,1,7) >= strftime('%Y-%m'," + quote(date) + ",'-11 months') AND substr(deployment,1,7) <= substr(" + quote(date) + ",1,7)" + joinFilter + " GROUP BY substr(deployment,1,7) ORDER BY substr(deployment,1,7)"),
+            deployments: timeline,
             additions: operatorName.isEmpty ? meta["added"].flatMap(Int.init) : nil,
             removals: operatorName.isEmpty ? meta["removed"].flatMap(Int.init) : nil,
             previousDate: operatorName.isEmpty ? meta["previousDate"] : nil)

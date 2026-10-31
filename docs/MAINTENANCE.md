@@ -61,3 +61,9 @@ L’import garde une table supplémentaire anfr_details, compatible avec le sch�
 Chaque préparation produit quality.json. Les azimuts 360° valent 0° pour l’affichage, mais l’export garde la chaîne originale. Les enregistrements source conservent aussi les dates et états propres à chaque support/système, au-delà de la synthèse station–bande.
 
 L’import récupère également la dernière archive `-data.zip` des installations ANFR de plus de 5 watts et en extrait seulement `SUP_STATION.txt`. La table `station_dates`, facultative pour les anciennes bases, contient les trois dates administratives et la publication d’origine. `dates-source.json` accompagne chaque nouvelle release ; le manifeste surveille les versions des deux sources. L’absence d’une date ou d’une correspondance n’est pas remplacée par la date du fichier.
+
+## Statistiques et chargement
+
+Les résultats statistiques sont conservés en mémoire par opérateur et invalidés à chaque changement de base. Les requêtes simultanées identiques partagent le même calcul. Les fiches lisent les systèmes, supports et détails hors du fil principal. Une base locale déjà installée évite une décompression inutile de la copie embarquée au lancement.
+
+Les fréquences séparent les libellés, les nombres et les barres. Le graphique mensuel affiche douze mois, y compris les mois à zéro, avec quatre repères espacés et un détail dépliable. Le début de période est calculé depuis le premier jour du mois pour éviter les décalages des 29, 30 et 31.

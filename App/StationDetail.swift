@@ -139,7 +139,7 @@ struct StationDetail: View {
                     }
                 }.padding(16)
             }.background(Color(.systemGroupedBackground)).navigationTitle("La station").navigationBarTitleDisplayMode(.inline)
-                .task { loadSystems() }
+                .task(id: store.databaseRevision) { await loadSystems() }
         }
     }
     private var hero: some View {
@@ -155,9 +155,17 @@ struct StationDetail: View {
             Label("Station déclarée · connexion non confirmée", systemImage: "info.circle").font(.caption).foregroundStyle(.secondary)
         }.frame(maxWidth: .infinity, alignment: .leading).padding(24).background(color.opacity(0.07), in: .rect(cornerRadius: 28))
     }
-    private func loadSystems() {
-        do { if let url = store.databaseURL { let db = try AntennaDatabase(url: url); systems = try db.systems(for: station.id); supports = try db.supports(for: station.id); sourceDetails = try db.sourceDetails(for: station.id); dates = try db.stationDates(for: station.id) } }
-        catch { self.error = error.localizedDescription }
+    private func loadSystems() async {
+        guard let url = store.databaseURL else { return }
+        let id = station.id
+        do {
+            let result = try await Task.detached(priority: .userInitiated) {
+                let db = try AntennaDatabase(url: url)
+                return try (db.systems(for: id), db.supports(for: id), db.sourceDetails(for: id), db.stationDates(for: id))
+            }.value
+            guard !Task.isCancelled else { return }
+            systems = result.0; supports = result.1; sourceDetails = result.2; dates = result.3; error = nil
+        } catch { if !Task.isCancelled { self.error = error.localizedDescription } }
     }
     private func technology(_ generation: String) -> String { switch generation { case "2G": "GSM"; case "3G": "UMTS"; case "4G": "LTE"; default: "5G NR" } }
 }

@@ -39,7 +39,7 @@ import MapKit
     func prepare() async {
         guard !ready else { return }
         do {
-            if !FileManager.default.fileExists(atPath: Self.bundledDatabase.path), let source = Bundle.main.url(forResource: "antennas.sqlite", withExtension: "gz") {
+            if !FileManager.default.fileExists(atPath: Self.localDatabase.path), !FileManager.default.fileExists(atPath: Self.bundledDatabase.path), let source = Bundle.main.url(forResource: "antennas.sqlite", withExtension: "gz") {
                 let destination = Self.bundledDatabase
                 try await Task.detached { try AntennaDatabase.unpack(source: source, destination: destination) }.value
             }
@@ -128,6 +128,33 @@ import MapKit
         } catch { message = "Import impossible : \(error.localizedDescription)" }
     }
 
+    @ObservationIgnored private var statisticsRevision = -1
+    @ObservationIgnored private var statisticsCache: [String: NetworkStatistics] = [:]
+    @ObservationIgnored private var statisticsTasks: [String: Task<NetworkStatistics, Error>] = [:]
+    func networkStatistics(operatorName: String) async throws -> NetworkStatistics {
+        guard let url = databaseURL else { throw DatabaseError.sqlite("Base ANFR indisponible.") }
+        if statisticsRevision != databaseRevision {
+            statisticsCache.removeAll()
+            statisticsTasks.removeAll()
+            statisticsRevision = databaseRevision
+        }
+        if let cached = statisticsCache[operatorName] { return cached }
+        if let task = statisticsTasks[operatorName] { return try await task.value }
+        let revision = databaseRevision
+        let task = Task.detached(priority: .userInitiated) { try AntennaDatabase(url: url).statistics(operatorName: operatorName) }
+        statisticsTasks[operatorName] = task
+        do {
+            let value = try await task.value
+            if revision == databaseRevision {
+                statisticsCache[operatorName] = value
+                statisticsTasks.removeValue(forKey: operatorName)
+            }
+            return value
+        } catch {
+            if revision == databaseRevision { statisticsTasks.removeValue(forKey: operatorName) }
+            throw error
+        }
+    }
     func toggle(_ station: Station) { if !favorites.insert(station.id).inserted { favorites.remove(station.id) } }
     func savedStations(ids: Set<String>) async throws -> [Station] {
         guard !ids.isEmpty else { return [] }

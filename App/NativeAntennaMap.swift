@@ -69,7 +69,7 @@ struct NativeAntennaMap: UIViewRepresentable {
     @MainActor final class Coordinator: NSObject, MKMapViewDelegate {
         var parent: NativeAntennaMap
         var annotations: [String: StationAnnotation] = [:]
-        var stationIDs: Set<String> = []
+        var appliedStations: [Station] = []
         var commandID: UUID?
         var moving = false
         var refreshTask: Task<Void, Never>?
@@ -78,15 +78,15 @@ struct NativeAntennaMap: UIViewRepresentable {
         var appearance: UIUserInterfaceStyle = .unspecified
         init(_ parent: NativeAntennaMap) { self.parent = parent }
         func applyStations(_ map: MKMapView) {
-            let ids = Set(parent.stations.map(\.id))
-            guard ids != stationIDs else { return }
-            let removed = annotations.filter { !ids.contains($0.key) }
+            guard parent.stations != appliedStations else { return }
+            let desired = Dictionary(uniqueKeysWithValues: parent.stations.map { ($0.id, $0) })
+            let removed = annotations.filter { desired[$0.key] != $0.value.station }
             map.removeAnnotations(Array(removed.values))
             for key in removed.keys { annotations.removeValue(forKey: key) }
             let added = parent.stations.filter { annotations[$0.id] == nil }.map(StationAnnotation.init)
             for annotation in added { annotations[annotation.station.id] = annotation }
             map.addAnnotations(added)
-            stationIDs = ids
+            appliedStations = parent.stations
         }
         func scheduleDirections(_ map: MKMapView) {
             refreshTask?.cancel()

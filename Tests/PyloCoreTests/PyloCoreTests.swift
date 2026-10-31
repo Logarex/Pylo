@@ -38,7 +38,8 @@ final class PyloCoreTests: XCTestCase {
         XCTAssertEqual(stats.generations.map(\.label), ["2G","4G","5G"])
         XCTAssertEqual(stats.frequencies.first?.count, 2)
         XCTAssertEqual(stats.additions, 1); XCTAssertEqual(stats.removals, 1)
-        XCTAssertEqual(stats.deployments.first?.label, "2026-10")
+        XCTAssertEqual(stats.deployments.last?.label, "2026-10")
+        XCTAssertEqual(stats.deployments.last?.count, 3)
         XCTAssertEqual(try db.stations(generation: "2G").count, 1)
         XCTAssertEqual(try db.systems(for: "new").first?.azimuths, [0,120,240])
         XCTAssertNil(try db.statistics(operatorName: "ORANGE").additions)
@@ -166,6 +167,25 @@ final class PyloCoreTests: XCTestCase {
         XCTAssertEqual(dates.service, "2010-07-01")
         XCTAssertEqual(dates.source, "octobre 2026")
         XCTAssertNil(try db.stationDates(for: "other"))
+    }
+    func testStatisticsIncludesEmptyMonthsAndMonthEndBoundary() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let db = try AntennaDatabase(url: root, writable: true); try db.prepareImport()
+        try db.insert(id: "first", operatorName: "SFR", lat: 48, lon: 2, address: "", system: "LTE 700", status: "", updated: "2026-10-31", deployment: "2025-11-01")
+        try db.insert(id: "second", operatorName: "FREE MOBILE", lat: 48, lon: 2, address: "", system: "LTE 700", status: "", updated: "2026-10-31", deployment: "2026-10-15")
+        try db.finishImport()
+        let stats = try db.statistics()
+        XCTAssertEqual(stats.deployments.count, 12)
+        XCTAssertEqual(stats.deployments.first?.label, "2025-11")
+        XCTAssertEqual(stats.deployments.first?.count, 1)
+        XCTAssertEqual(stats.deployments[1].count, 0)
+        XCTAssertEqual(stats.deployments.last?.label, "2026-10")
+        XCTAssertEqual(stats.deployments.last?.count, 1)
+        let filtered = try db.statistics(operatorName: "SFR")
+        XCTAssertEqual(filtered.stationCount, 1)
+        XCTAssertEqual(filtered.deployments.last?.count, 0)
+        XCTAssertEqual(try db.sourceDate(), "2026-10-31")
     }
     func testECI() { XCTAssertEqual(Radio.enodeB(25601),100); XCTAssertEqual(Radio.sector(25601),1) }
 }

@@ -1,5 +1,7 @@
 import Foundation
 public enum ANFRAddress {
+    private static let streetPattern = try? NSRegularExpression(pattern: #"(?i)^(\d+(?:[-/]\d+)?[a-z]?(?:\s+(?:bis|ter|quater))?\s+)?(r|rte|bd|boul|av|ave|chem|imp|pl|all|sq|fg|faub|pass)\.?(?=\s)"#)
+    private static let expanded = ["r":"Rue","rte":"Route","bd":"Boulevard","boul":"Boulevard","av":"Avenue","ave":"Avenue","chem":"Chemin","imp":"Impasse","pl":"Place","all":"Allée","sq":"Square","fg":"Faubourg","faub":"Faubourg","pass":"Passage"]
     public static func full(_ raw: String, commune: String) -> String {
         let clean = readable(raw)
         guard !commune.isEmpty, !clean.components(separatedBy: ",").contains(where: { $0.trimmingCharacters(in: .whitespaces).localizedCaseInsensitiveCompare(commune) == .orderedSame }) else { return clean }
@@ -9,9 +11,7 @@ public enum ANFRAddress {
     public static func readable(_ original: String) -> String {
         original.components(separatedBy: ",").map { part in
             let clean = part.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
-            let pattern = #"(?i)^(\d+(?:[-/]\d+)?[a-z]?(?:\s+(?:bis|ter|quater))?\s+)?(r|rte|bd|boul|av|ave|chem|imp|pl|all|sq|fg|faub|pass)\.?(?=\s)"#
-            guard let regex = try? NSRegularExpression(pattern: pattern), let match = regex.firstMatch(in: clean, range: NSRange(clean.startIndex...,in: clean)), let typeRange = Range(match.range(at: 2), in: clean), let allRange = Range(match.range,in: clean) else { return clean }
-            let expanded = ["r":"Rue","rte":"Route","bd":"Boulevard","boul":"Boulevard","av":"Avenue","ave":"Avenue","chem":"Chemin","imp":"Impasse","pl":"Place","all":"Allée","sq":"Square","fg":"Faubourg","faub":"Faubourg","pass":"Passage"]
+            guard let regex = streetPattern, let match = regex.firstMatch(in: clean, range: NSRange(clean.startIndex...,in: clean)), let typeRange = Range(match.range(at: 2), in: clean), let allRange = Range(match.range,in: clean) else { return clean }
             guard let value = expanded[clean[typeRange].lowercased()] else { return clean }
             let prefix = Range(match.range(at: 1), in: clean).map { String(clean[$0]) } ?? ""
             return prefix + value + clean[allRange.upperBound...]
