@@ -6,7 +6,7 @@ enum Palette {
     static let accent = Color("AccentColor")
     static func operatorColor(_ name: String) -> Color {
         if name.contains("ORANGE") { return .orange }
-        if name.contains("FREE") { return Color(red: 0.16, green: 0.17, blue: 0.20) }
+        if name.contains("FREE") { return Color("FreeOperator") }
         if name == "SFR" || name == "SRR" { return Color(red: 0.90, green: 0.04, blue: 0.16) }
         if name.contains("BOUYGUES") { return Color(red: 0, green: 0.57, blue: 0.68) }
         let seed = name.utf8.reduce(0) { ($0 * 31 + Int($1)) % 997 }

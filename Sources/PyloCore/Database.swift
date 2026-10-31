@@ -80,6 +80,9 @@ public final class AntennaDatabase {
             (row[0], Array(Set(row[1].split(separator: "|").compactMap { Double($0) }.filter { $0.isFinite && (0..<360).contains($0) })).sorted())
         })
     }
+    public func sourceDate() throws -> String {
+        try rows("SELECT max(substr(updated,1,10)) FROM stations").first?.first ?? ""
+    }
     public func recordComparison(previous: URL) throws {
         let old = try AntennaDatabase(url: previous)
         guard try old.rows("PRAGMA user_version").first?.first == "2" else { return }

@@ -95,5 +95,32 @@ final class PyloCoreTests: XCTestCase {
         let many = Set((0..<505).map { "missing-\($0)" } + ["b"])
         XCTAssertEqual(try db.stations(ids: many).map(\.id), ["b"])
     }
+    func testUpdateManifestAndAtomicInstall() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("source.sqlite"), archive = root.appendingPathComponent("antennas.sqlite.gz"), destination = root.appendingPathComponent("installed.sqlite")
+        let db = try AntennaDatabase(url: source, writable: true); try db.prepareImport()
+        try db.insert(id: "updated", operatorName: "SFR", lat: 48, lon: 2, address: "", system: "LTE 700", status: "En service", updated: "2026-10-29", supportID: "1")
+        try db.finishImport()
+        FileManager.default.createFile(atPath: archive.path, contents: nil)
+        let file = try FileHandle(forWritingTo: archive)
+        let gzip = Process(); gzip.executableURL = URL(fileURLWithPath: "/usr/bin/gzip"); gzip.arguments = ["-c",source.path]; gzip.standardOutput = file
+        try gzip.run(); gzip.waitUntilExit(); try file.close(); XCTAssertEqual(gzip.terminationStatus, 0)
+        let manifest = try DataManifest(sourceVersion: "test", sourceDate: "2026-10-29", url: URL(string: "https://github.com/Logarex/Pylo/releases/download/test/antennas.sqlite.gz")!, sha256: DataUpdates.digest(of: archive), compressedBytes: Data(contentsOf: archive).count, uncompressedBytes: Data(contentsOf: source).count)
+        try Data("ancienne copie".utf8).write(to: destination)
+        let wrong = DataManifest(sourceVersion: "test", sourceDate: "2026-10-29", url: manifest.url, sha256: String(repeating: "0", count: 64), compressedBytes: manifest.compressedBytes, uncompressedBytes: manifest.uncompressedBytes)
+        XCTAssertThrowsError(try DataUpdates.installArchive(archive, manifest: wrong, at: destination))
+        XCTAssertEqual(try String(contentsOf: destination, encoding: .utf8), "ancienne copie")
+        try DataUpdates.installArchive(archive, manifest: manifest, at: destination)
+        XCTAssertEqual(try AntennaDatabase(url: destination).stations(limit: 1).first?.id, "updated")
+        let wrongDate = DataManifest(sourceVersion: "test", sourceDate: "2026-10-30", url: manifest.url, sha256: manifest.sha256, compressedBytes: manifest.compressedBytes, uncompressedBytes: manifest.uncompressedBytes)
+        XCTAssertThrowsError(try DataUpdates.installArchive(archive, manifest: wrongDate, at: destination))
+        XCTAssertEqual(try AntennaDatabase(url: destination).sourceDate(), "2026-10-29")
+        let foreign = DataManifest(sourceVersion: "test", sourceDate: "2026-10-29", url: URL(string: "https://example.com/antennas.sqlite.gz")!, sha256: manifest.sha256, compressedBytes: manifest.compressedBytes, uncompressedBytes: manifest.uncompressedBytes)
+        XCTAssertThrowsError(try foreign.validate())
+        let unknown = DataManifest(sourceVersion: "test", sourceDate: "2026-10-29", url: manifest.url, sha256: "bad", compressedBytes: 0, uncompressedBytes: 0)
+        XCTAssertThrowsError(try unknown.validate())
+    }
     func testECI() { XCTAssertEqual(Radio.enodeB(25601),100); XCTAssertEqual(Radio.sector(25601),1) }
 }

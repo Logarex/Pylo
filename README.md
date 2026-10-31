@@ -12,7 +12,7 @@ Je suis étudiant et j’ai créé Pylo pour comprendre les antennes autour de m
 
 Pylo est écrite en Swift, avec une interface native, des données ANFR consultables hors ligne et un guide pour apprendre à lire Field Test sans se perdre dans les acronymes.
 
-**Gratuite · développée par un étudiant · code sous licence GPL-3.0.**
+**Gratuite et open source · développée par un étudiant · licence GPL-3.0.**
 
 ## Un aperçu de l’app
 
@@ -28,7 +28,7 @@ Pylo est écrite en Swift, avec une interface native, des données ANFR consulta
 
 - Naviguer sur une carte Apple Plans, chercher une ville ou une adresse avec des suggestions pendant la saisie, puis se placer autour de sa position.
 - Filtrer les stations par **2G, 3G, 4G, 5G** et par opérateur, y compris les opérateurs d’outre-mer présents dans la source.
-- Repérer les opérateurs grâce à leurs couleurs : **Orange en orange, Free en anthracite, SFR en rouge et Bouygues Telecom en turquoise**. Les regroupements mélangent les couleurs des opérateurs présents.
+- Repérer les opérateurs grâce à leurs couleurs : **Orange en orange, Free en noir en thème clair et en blanc en thème sombre, SFR en rouge et Bouygues Telecom en turquoise**. Les regroupements mélangent les couleurs des opérateurs présents.
 - Zoomer avec les gestes habituels ou les boutons **+ / −**.
 - Garder des stations en favoris, les partager et ouvrir un itinéraire dans Plans.
 
@@ -90,21 +90,26 @@ La copie embarquée du **29 octobre 2026** contient **139 406 stations**, **72 9
 
 Une même station peut compter plusieurs générations et plusieurs bandes : les graphiques ne s’additionnent pas tous au total des stations. Les dates des systèmes ne sont pas des dates d’ajout au catalogue. La première copie enrichie initialise l’historique ; Pylo ne fabrique pas de chiffre pour les « nouvelles antennes du mois » lorsqu’il manque une copie de comparaison.
 
-## Les mises à jour ANFR
+## Les mises à jour ANFR — rien à importer
 
-Un workflow GitHub Actions tourne **le 3 de chaque mois à 07:23 UTC** et peut aussi être lancé manuellement. Il découvre la dernière archive dans le catalogue officiel, la télécharge, valide son format et construit la base SQLite.
+L’ANFR suit son propre calendrier : son catalogue indique une fréquence **hebdomadaire**, pas un jour fixe au début du mois. Pylo ne suppose donc aucune date de publication.
 
-La publication privée contient `antennas.sqlite`, les métadonnées de source et une empreinte SHA-256. Pour mettre l’app à jour :
+1. **Chaque jour à 07:23 UTC**, GitHub Actions vérifie la dernière ressource du catalogue officiel. Si elle est inchangée, il ne reconstruit rien.
+2. Si la source a changé, le projet télécharge cette archive, prépare la base, la valide et la publie avec son empreinte SHA-256. Le manifeste public est mis à jour seulement une fois les fichiers disponibles.
+3. Sur l’iPhone, Pylo vérifie la version **à l’ouverture ou au retour dans l’app, au maximum une fois par jour**, en Wi-Fi. Une base plus récente est téléchargée et installée automatiquement, hors mode données réduites.
+4. L’ancienne copie reste disponible tant que le téléchargement, l’empreinte et les vérifications SQLite n’ont pas réussi. Les favoris ne sont pas supprimés.
 
-1. Ouvre les [publications du projet](https://github.com/Logarex/pylo/releases) en étant connecté à ton compte GitHub.
-2. Télécharge une base récente au format Pylo 2, puis ouvre **Pylo → Le projet → Importer une mise à jour ANFR**.
-3. Choisis le fichier dans Fichiers. Pylo le valide avant de remplacer la copie locale.
+Dans **Le projet**, on peut désactiver les mises à jour automatiques, voir la date des données et de la dernière vérification, ou toucher **Vérifier maintenant**. L’import de fichier reste disponible dans une rubrique de dépannage, mais n’est plus nécessaire pour l’usage normal.
 
-Le pipeline compare également les identifiants avec la publication précédente lorsqu’elle utilise le même schéma. L’ancien format, qui excluait la 2G, ne sert pas à calculer de faux ajouts.
+La vérification automatique attend que l’app soit ouverte : iOS ne garantit pas qu’une app fermée sera réveillée tous les jours. En cas de Wi-Fi absent ou d’échec, la copie locale continue de fonctionner. Les mises à jour de données ne mettent pas à jour le code de l’application lui-même.
 
-L’import sur l’iPhone reste manuel tant que le dépôt est privé : aucun jeton GitHub personnel n’est intégré dans l’app. Le téléchargement automatique depuis une source publique pourra être ajouté après l’ouverture du dépôt.
+Pour lancer une publication toi-même : ouvre [Actions → Mise à jour ANFR](https://github.com/Logarex/Pylo/actions/workflows/anfr.yml), puis **Run workflow**. L’option **force** permet de reconstruire la base même si l’archive ANFR n’a pas changé. Le calendrier GitHub peut subir des retards ; ce lancement manuel reste disponible.
 
-La base embarquée est compressée : environ **36 Mo** dans le projet et **146 Mo** une fois décompressée dans le cache de l’app. Les données de stations se consultent hors ligne ; le fond de carte, les recherches et les itinéraires peuvent nécessiter internet.
+Tout reste dans **un seul dépôt public** : code, [manifeste](data/manifest.json) et [publications des données](https://github.com/Logarex/Pylo/releases). Aucun jeton GitHub n’est intégré dans l’app. Les téléchargements passent par GitHub sans transmettre les favoris, la position ou le cap.
+
+Le manifeste référence une publication immuable de la base compressée, avec la version source, la date, la taille et le SHA-256. Le workflow compare aussi les identifiants avec la copie précédente pour les statistiques d’évolution. Les données ANFR restent sous Licence Ouverte 2.0.
+
+La copie embarquée est compressée : environ **36 Mo** dans le projet et **146 Mo** une fois décompressée. Elle reste disponible hors ligne ; le fond de carte, les recherches et les itinéraires peuvent nécessiter internet.
 
 ## Installer et lancer le projet
 
@@ -138,7 +143,7 @@ swift run -c release anfr-import output/antennas.sqlite /chemin/observatoire.csv
 | `Sources/PyloCore/` | Modèles, CSV, SQLite, géométrie et limites de rendu des orientations |
 | `Sources/ANFRImport/` | Outil de récupération et de préparation des données, écrit en Swift |
 | `Tests/` | Parsing, filtres, statistiques, comparaisons, supports multiples et orientations |
-| `.github/workflows/` | Vérifications et mise à jour mensuelle ANFR |
+| `.github/workflows/` | Vérifications et surveillance quotidienne du catalogue ANFR |
 
 Les fichiers du cœur sont partagés entre l’app, les tests et l’importeur. SQLite, zlib et la décompression ZIP sur Mac reposent sur les outils du système. Pas de serveur Pylo à maintenir.
 

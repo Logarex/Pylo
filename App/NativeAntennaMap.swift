@@ -45,6 +45,15 @@ struct NativeAntennaMap: UIViewRepresentable {
     func updateUIView(_ map: MKMapView, context: Context) {
         let coordinator = context.coordinator
         coordinator.parent = self
+        if coordinator.appearance != map.traitCollection.userInterfaceStyle {
+            coordinator.appearance = map.traitCollection.userInterfaceStyle
+            coordinator.imageCache.removeAll(keepingCapacity: true)
+            for annotation in map.annotations {
+                if let cluster = annotation as? MKClusterAnnotation, let view = map.view(for: cluster) {
+                    view.image = coordinator.clusterImage(cluster.memberAnnotations.compactMap { ($0 as? StationAnnotation)?.station }, traits: map.traitCollection)
+                }
+            }
+        }
         if let command, command.id != coordinator.commandID {
             coordinator.commandID = command.id
             map.setRegion(command.region, animated: true)
@@ -66,6 +75,7 @@ struct NativeAntennaMap: UIViewRepresentable {
         var refreshTask: Task<Void, Never>?
         weak var directionsLayer: OrientationLayer?
         var imageCache: [String: UIImage] = [:]
+        var appearance: UIUserInterfaceStyle = .unspecified
         init(_ parent: NativeAntennaMap) { self.parent = parent }
         func applyStations(_ map: MKMapView) {
             let ids = Set(parent.stations.map(\.id))
@@ -130,7 +140,7 @@ struct NativeAntennaMap: UIViewRepresentable {
             if let cluster = annotation as? MKClusterAnnotation {
                 let view = mapView.dequeueReusableAnnotationView(withIdentifier: MKMapViewDefaultClusterAnnotationViewReuseIdentifier, for: cluster)
                 let members = cluster.memberAnnotations.compactMap { ($0 as? StationAnnotation)?.station }
-                view.image = clusterImage(members); view.displayPriority = .defaultHigh
+                view.image = clusterImage(members, traits: mapView.traitCollection); view.displayPriority = .defaultHigh
                 view.accessibilityLabel = "\(members.count) stations : \(Set(members.map { operatorDisplayName($0.operatorName) }).sorted().joined(separator: ", "))"
                 return view
             }
@@ -139,7 +149,7 @@ struct NativeAntennaMap: UIViewRepresentable {
             view.clusteringIdentifier = "stations"
             view.markerTintColor = UIColor(Palette.operatorColor(station.station.operatorName))
             view.glyphImage = UIImage(systemName: "antenna.radiowaves.left.and.right")
-            view.glyphTintColor = .white
+            view.glyphTintColor = station.station.operatorName.contains("FREE") ? UIColor { $0.userInterfaceStyle == .dark ? .black : .white } : .white
             view.titleVisibility = .hidden; view.subtitleVisibility = .hidden
             view.displayPriority = .defaultLow
             view.accessibilityLabel = "\(operatorDisplayName(station.station.operatorName)) · \(station.station.address)"
@@ -153,23 +163,23 @@ struct NativeAntennaMap: UIViewRepresentable {
             parent.onSelection(members.sorted { $0.operatorName < $1.operatorName })
             mapView.deselectAnnotation(annotation, animated: false)
         }
-        private func clusterImage(_ members: [Station]) -> UIImage {
+        func clusterImage(_ members: [Station], traits: UITraitCollection) -> UIImage {
             let groups = Dictionary(grouping: members, by: \.operatorName).mapValues(\.count)
             let names = groups.keys.sorted()
-            let key = String(UIScreen.main.traitCollection.userInterfaceStyle.rawValue) + names.map { "\($0):\(groups[$0] ?? 0)" }.joined(separator: "|")
+            let key = String(traits.userInterfaceStyle.rawValue) + names.map { "\($0):\(groups[$0] ?? 0)" }.joined(separator: "|")
             if let cached = imageCache[key] { return cached }
             let image = UIGraphicsImageRenderer(size: CGSize(width: 44,height: 44)).image { context in
                 let circle = CGRect(x: 2,y: 2,width: 40,height: 40)
-                UIColor.secondarySystemGroupedBackground.setFill(); context.cgContext.fillEllipse(in: circle)
+                UIColor.secondarySystemGroupedBackground.resolvedColor(with: traits).setFill(); context.cgContext.fillEllipse(in: circle)
                 var start = -Double.pi/2
                 for name in names {
                     let end = start + Double(groups[name] ?? 0) / Double(max(1,members.count)) * 2 * .pi
-                    context.cgContext.setStrokeColor(UIColor(Palette.operatorColor(name)).cgColor)
+                    context.cgContext.setStrokeColor(UIColor(Palette.operatorColor(name)).resolvedColor(with: traits).cgColor)
                     context.cgContext.setLineWidth(5)
                     context.cgContext.addArc(center: CGPoint(x:22,y:22), radius:19,startAngle:start,endAngle:end,clockwise:false)
                     context.cgContext.strokePath(); start = end
                 }
-                let text = NSAttributedString(string: String(members.count),attributes:[.font:UIFont.systemFont(ofSize:14,weight:.bold),.foregroundColor:UIColor.label])
+                let text = NSAttributedString(string: String(members.count),attributes:[.font:UIFont.systemFont(ofSize:14,weight:.bold),.foregroundColor:UIColor.label.resolvedColor(with: traits)])
                 let size = text.size(); text.draw(at:CGPoint(x:22-size.width/2,y:22-size.height/2))
             }
             if imageCache.count >= 200 { imageCache.removeAll(keepingCapacity: true) }
@@ -213,9 +223,9 @@ final class OrientationLayer: UIView {
             context.setLineWidth(5)
             context.addPath(path); context.strokePath()
             context.addPath(head); context.strokePath()
-            context.setStrokeColor(arrow.color.cgColor); context.setLineWidth(2.5)
+            context.setStrokeColor(arrow.color.resolvedColor(with: traitCollection).cgColor); context.setLineWidth(2.5)
             context.addPath(path); context.strokePath()
-            context.setFillColor(arrow.color.cgColor); context.addPath(head); context.fillPath()
+            context.setFillColor(arrow.color.resolvedColor(with: traitCollection).cgColor); context.addPath(head); context.fillPath()
         }
     }
 }

@@ -10,6 +10,13 @@ import MapKit
     var loading = false
     var ready = false
     var databaseRevision = 0
+    var isUpdating = false
+    var updateStatus = "Les mises à jour se font automatiquement en Wi-Fi."
+    var dataSourceDate = ""
+    var lastDataCheck: Date?
+    var automaticUpdates: Bool { didSet { UserDefaults.standard.set(automaticUpdates, forKey: "automaticDataUpdates") } }
+    @ObservationIgnored private var installedDigest: String
+    @ObservationIgnored private var lastUpdateAttempt: Date?
     var generation = ""
     var operatorName = ""
     var favorites: Set<String> { didSet { UserDefaults.standard.set(Array(favorites), forKey: "favorites") } }
@@ -19,6 +26,9 @@ import MapKit
     private var request = UUID()
     static var localDatabase: URL { URL.documentsDirectory.appendingPathComponent("antennas.sqlite") }
     init() {
+        automaticUpdates = UserDefaults.standard.object(forKey: "automaticDataUpdates") as? Bool ?? true
+        installedDigest = UserDefaults.standard.string(forKey: "installedDataDigest") ?? ""
+        lastDataCheck = UserDefaults.standard.object(forKey: "lastDataCheck") as? Date
         favorites = Set(UserDefaults.standard.stringArray(forKey: "favorites") ?? [])
 
     }
@@ -33,8 +43,48 @@ import MapKit
                 let destination = Self.bundledDatabase
                 try await Task.detached { try AntennaDatabase.unpack(source: source, destination: destination) }.value
             }
+            if let url = databaseURL {
+                dataSourceDate = (try? await Task.detached { try AntennaDatabase(url: url).sourceDate() }.value) ?? ""
+            }
+            if installedDigest.isEmpty, !FileManager.default.fileExists(atPath: Self.localDatabase.path), let bundled = Bundle.main.url(forResource: "antennas.sqlite", withExtension: "gz") {
+                installedDigest = (try? await Task.detached { try DataUpdates.digest(of: bundled) }.value) ?? ""
+                UserDefaults.standard.set(installedDigest, forKey: "installedDataDigest")
+            }
             ready = true
         } catch { message = error.localizedDescription; ready = true }
+    }
+    func checkDataUpdates(automatic: Bool = false) async {
+        guard ready, !isUpdating else { return }
+        if automatic {
+            guard automaticUpdates, device.connection == "Wi-Fi", device.constrained != true else { return }
+            if let lastDataCheck, Date().timeIntervalSince(lastDataCheck) < 86400 { return }
+            if let lastUpdateAttempt, Date().timeIntervalSince(lastUpdateAttempt) < 900 { return }
+        }
+        lastUpdateAttempt = Date(); isUpdating = true
+        defer { isUpdating = false }
+        updateStatus = "Vérification des dernières données ANFR…"
+        do {
+            let manifest = try await DataUpdates.fetchManifest()
+            if manifest.sourceDate < dataSourceDate || manifest.sha256 == installedDigest {
+                updateStatus = "Ta base est à jour."
+                lastDataCheck = Date(); UserDefaults.standard.set(lastDataCheck, forKey: "lastDataCheck")
+                return
+            }
+            guard device.connection == "Wi-Fi", device.constrained != true else {
+                updateStatus = "Une mise à jour est disponible. Elle sera téléchargée en Wi-Fi, hors mode données réduites."
+                return
+            }
+            updateStatus = "Téléchargement de la base · environ \(manifest.compressedBytes / 1_000_000) Mo…"
+            try await DataUpdates.install(manifest, at: Self.localDatabase)
+            installedDigest = manifest.sha256; dataSourceDate = manifest.sourceDate
+            UserDefaults.standard.set(installedDigest, forKey: "installedDataDigest")
+            lastDataCheck = Date(); UserDefaults.standard.set(lastDataCheck, forKey: "lastDataCheck")
+            databaseRevision += 1
+            updateStatus = "Mise à jour installée. Les antennes sont prêtes."
+            await load()
+        } catch {
+            updateStatus = "La mise à jour n’a pas pu aboutir. Ta base actuelle reste disponible. Réessaie plus tard."
+        }
     }
     func load() async {
         guard let url = databaseURL else { message = "Ajoute une base ANFR dans l’onglet Données."; return }
@@ -52,6 +102,7 @@ import MapKit
         } catch { if request == token { message = error.localizedDescription; loading = false } }
     }
     func importDatabase(_ url: URL) async {
+        guard !isUpdating else { return }
         let access = url.startAccessingSecurityScopedResource(); defer { if access { url.stopAccessingSecurityScopedResource() } }
         do {
             let data = try Data(contentsOf: url)
@@ -60,6 +111,8 @@ import MapKit
             try data.write(to: staging)
             let db = try AntennaDatabase(url: staging); try db.validate(requireEnriched: true)
             try data.write(to: Self.localDatabase, options: .atomic)
+            installedDigest = ""; UserDefaults.standard.removeObject(forKey: "installedDataDigest")
+            dataSourceDate = (try? db.sourceDate()) ?? ""
             databaseRevision += 1
             await load()
         } catch { message = "Import impossible : \(error.localizedDescription)" }

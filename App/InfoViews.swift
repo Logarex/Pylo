@@ -27,6 +27,7 @@ struct DataView: View {
     @Environment(AppStore.self) private var store
     @State private var importing = false
     var body: some View {
+        @Bindable var store = store
         NavigationStack {
             List {
                 Section {
@@ -41,18 +42,25 @@ struct DataView: View {
                     Text("Leurs identifications communautaires peuvent aider à relier des identifiants radio aux sites Free Mobile. Pylo propose un lien ; il n’existe pas de partenariat confirmé ni d’import de leur base dans cette version.").font(.footnote).foregroundStyle(.secondary)
                 }
                 Section("Les antennes, à jour") {
-                    Text("La carte utilise une copie locale des données ANFR. Elle fonctionne hors ligne ; le fond de carte et la recherche de lieux peuvent nécessiter internet.")
-                    Button("Importer une mise à jour ANFR", systemImage: "square.and.arrow.down") { importing = true }
-                    Text("Chaque mois, GitHub prépare le fichier antennas.sqlite. Télécharge-le depuis les publications privées du projet, puis ouvre-le ici avec Fichiers. Aucun identifiant GitHub n’est intégré dans l’app.").font(.footnote).foregroundStyle(.secondary)
-                    if let url = store.databaseURL, let attrs = try? FileManager.default.attributesOfItem(atPath: url.path), let size = attrs[.size] as? Int {
-                        LabeledContent("Base locale", value: ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file))
+                    Text("Tu n’as aucun fichier à chercher. Pylo vérifie les nouvelles données lorsque tu ouvres l’app ou y reviens, au maximum une fois par jour en Wi-Fi.")
+                    Toggle("Mises à jour automatiques en Wi-Fi", isOn: $store.automaticUpdates)
+                    if !store.dataSourceDate.isEmpty { LabeledContent("Données ANFR du", value: formattedDate(store.dataSourceDate)) }
+                    if let date = store.lastDataCheck { LabeledContent("Dernière vérification", value: date.formatted(date: .abbreviated, time: .shortened)) }
+                    HStack(alignment: .top) {
+                        if store.isUpdating { ProgressView() }
+                        Text(store.updateStatus).font(.footnote).foregroundStyle(.secondary)
                     }
-                    if let message = store.message { Text(message).foregroundStyle(.orange) }
+                    Button("Vérifier maintenant", systemImage: "arrow.triangle.2.circlepath") { Task { await store.checkDataUpdates() } }.disabled(store.isUpdating)
+                    Text("L’ANFR publie selon son propre calendrier. Le projet surveille le catalogue chaque jour et prépare une base seulement quand la source change. Les téléchargements de base se font en Wi-Fi, hors mode données réduites ; l’ancienne copie reste utilisable en cas d’échec. Une vérification automatique attend l’ouverture ou le retour dans l’app : iOS ne garantit pas un réveil quotidien lorsqu’elle est fermée.").font(.footnote).foregroundStyle(.secondary)
+                    DisclosureGroup("Import manuel · dépannage") {
+                        Button("Importer un fichier ANFR préparé pour Pylo", systemImage: "square.and.arrow.down") { importing = true }.disabled(store.isUpdating)
+                        Text("Cette option reste disponible pour tester une base locale. Elle n’est pas nécessaire pour les mises à jour normales.").font(.caption)
+                    }
                     Link("Source officielle · ANFR / data.gouv.fr", destination: URL(string: "https://www.data.gouv.fr/datasets/donnees-sur-les-reseaux-mobiles")!)
-                    Text("Données ANFR, Licence Ouverte 2.0. Dates et états affichés tels que publiés par la source.").font(.caption)
+                    Text("Données ANFR, Licence Ouverte 2.0. La carte conserve une copie locale consultable hors ligne ; le fond de carte et les recherches peuvent nécessiter internet.").font(.caption)
                 }
                 Section("Tes données restent avec toi") {
-                    Text("Les favoris restent sur cet appareil. La localisation et le cap servent à centrer la carte et à calculer les directions et distances ; Pylo ne les conserve pas et ne les envoie pas à un serveur Pylo. Apple Plans traite les recherches et itinéraires selon ses propres conditions.")
+                    Text("Les favoris restent sur cet appareil. La localisation et le cap servent à centrer la carte et à calculer les directions et distances ; Pylo ne les conserve pas et ne les envoie pas à un serveur Pylo. Apple Plans traite les recherches et itinéraires selon ses propres conditions. Les mises à jour de la base sont téléchargées depuis GitHub, sans lui transmettre tes favoris, ta position ni ton cap.")
                     Text("Pylo n’est pas affiliée à Apple, à l’ANFR ou aux opérateurs.").font(.footnote).foregroundStyle(.secondary)
                 }
             }.navigationTitle("Le projet")

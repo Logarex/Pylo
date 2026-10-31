@@ -20,6 +20,7 @@
 		A6B1F36DEAED51E93FE2F1C4 /* antennas.sqlite.gz in Resources */ = {isa = PBXBuildFile; fileRef = 09CA93B85B503D8F7F741093 /* antennas.sqlite.gz */; };
 		B05ED0853AF69FC4EEB504F9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 949F88396B5D827603B7D404 /* ContentView.swift */; };
 		B6A6D287F3B94C7C7916F819 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33DCEE46050D9135A7AEE795 /* Database.swift */; };
+		B80C7F51DBBFA546AD28B227 /* DataUpdates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6769FC44386DF886D7D637EA /* DataUpdates.swift */; };
 		F24FD997A5AEBED6B1D115D3 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 940991410D1F8D75E73A96F1 /* PrivacyInfo.xcprivacy */; };
 		F5A9C727FB35AE14B99B7228 /* PyloApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8445658264FDC0DB16FF9EC0 /* PyloApp.swift */; };
 		FD7EE32B7A7BB6CA3FA0A479 /* OrientationPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244CD38ED66DBB5742FB3124 /* OrientationPlan.swift */; };
@@ -35,6 +36,7 @@
 		4AF923465F5183558130D6A4 /* StationDetail.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StationDetail.swift; sourceTree = "<group>"; };
 		55B91481CCF7BA8EA9F36C56 /* InfoViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InfoViews.swift; sourceTree = "<group>"; };
 		62B9CD098037555C1D24D93A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		6769FC44386DF886D7D637EA /* DataUpdates.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DataUpdates.swift; sourceTree = "<group>"; };
 		8445658264FDC0DB16FF9EC0 /* PyloApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PyloApp.swift; sourceTree = "<group>"; };
 		940991410D1F8D75E73A96F1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		949F88396B5D827603B7D404 /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -81,6 +83,7 @@
 				33DCEE46050D9135A7AEE795 /* Database.swift */,
 				1CD2A9F7F89564429B1AD9E1 /* Station.swift */,
 				244CD38ED66DBB5742FB3124 /* OrientationPlan.swift */,
+				6769FC44386DF886D7D637EA /* DataUpdates.swift */,
 			);
 			name = PyloCore;
 			path = Sources/PyloCore;
@@ -204,6 +207,7 @@
 				802ECAD3D0A6805A82C1A023 /* StatisticsView.swift in Sources */,
 				45765DA3952E5736D9D5D493 /* NativeAntennaMap.swift in Sources */,
 				FD7EE32B7A7BB6CA3FA0A479 /* OrientationPlan.swift in Sources */,
+				B80C7F51DBBFA546AD28B227 /* DataUpdates.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

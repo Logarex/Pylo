@@ -17,7 +17,7 @@ Sources consultées le 31 octobre 2026 :
 
 Bonjour l’équipe RNC Mobile,
 
-Je suis étudiant et je développe Pylo, une app iPhone gratuite pour explorer les antennes et mieux comprendre le réseau mobile. Le code est sous licence GPL-3.0 ; le dépôt reste privé le temps de préparer une première version propre.
+Je suis étudiant et je développe Pylo, une app iPhone gratuite pour explorer les antennes et mieux comprendre le réseau mobile. Le code est disponible sur GitHub sous licence GPL-3.0.
 
 J’aimerais faire un lien utile avec votre travail communautaire. Sur iPhone, Apple ne permet pas aux apps de lire la cellule connectée ni les mesures radio détaillées. Mon idée est donc d’aider les utilisateurs à comprendre Field Test et, quand c’est possible, à retrouver un site grâce à des correspondances vérifiées.
 

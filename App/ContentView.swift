@@ -2,6 +2,7 @@ import SwiftUI
 import MapKit
 
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(AppStore.self) private var store
     var body: some View {
         Group {
@@ -14,7 +15,9 @@ struct ContentView: View {
             Tab("Le projet", systemImage: "info.circle") { DataView() }
         }
         } else { ProgressView("Préparation des données ANFR…").padding() }
-        }.task { await store.prepare() }
+        }.task { await store.prepare(); await store.checkDataUpdates(automatic: true) }
+        .onChange(of: scenePhase) { if scenePhase == .active { Task { await store.checkDataUpdates(automatic: true) } } }
+        .onChange(of: store.device.connection) { Task { await store.checkDataUpdates(automatic: true) } }
     }
 }
 extension View {

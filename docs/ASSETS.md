@@ -13,3 +13,7 @@ Edit target: supplied Pylo logo sheet. Extract ONLY the LEFT light-mode square a
 
 Edit target: supplied Pylo logo sheet. Extract ONLY the RIGHT dark-mode square app logo into one standalone square image. Preserve exactly original blue radio waves, pale antenna, near-black background and rounded square border, proportions. Tight square framing around icon, NO caption, NO light-mode logo, NO surrounding sheet or black margins. Extraction only, not redesign. Output square 1024x1024.
 ```
+
+## Icônes à fond perdu
+
+Les logos ont ensuite été repris avec imagegen, en mode édition, pour enlever la grande marge et la bordure extérieure. Consigne : conserver le pylône et les trois ondes de chaque côté ; fond clair ou sombre jusqu’aux quatre coins du carré ; aucun cadre, aucune bordure, aucun carré arrondi ni marge extérieure ; symbole centré occupant environ 78 % du carré ; pas de texte ni d’ajout. Les fichiers de projet sont `App/Assets.xcassets/Brand.imageset/pylo-light.png` et `pylo-dark.png`, également déclinés en 1024 × 1024 dans AppIcon. Le masque arrondi est laissé à iOS.

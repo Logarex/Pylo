@@ -1,8 +1,13 @@
 name: Mise à jour ANFR
 on:
   schedule:
-    - cron: '23 7 3 * *'
+    - cron: '23 7 * * *'
   workflow_dispatch:
+    inputs:
+      force:
+        description: Reconstruire et publier même si la source ANFR est inchangée
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -19,26 +24,57 @@ jobs:
           xcode-version: latest-stable
       - name: Vérifier le cœur Swift
         run: swift test
-      - name: Récupérer et valider les données officielles
+      - name: Vérifier le catalogue ANFR
+        id: catalog
         env:
-          GH_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force || false }}
         run: |
           mkdir -p output previous
-          PREVIOUS_TAG="$(gh release list --limit 1 --json tagName --jq '.[0].tagName // empty')"
-          if [ -n "$PREVIOUS_TAG" ]; then
-            gh release download "$PREVIOUS_TAG" --pattern antennas.sqlite --dir previous
-            export PYLO_PREVIOUS_DATABASE="$PWD/previous/antennas.sqlite"
+          swift run -c release anfr-import --catalog output/catalog.json
+          NEW_VERSION="$(jq -r .version output/catalog.json)"
+          CURRENT_VERSION="$(jq -r .sourceVersion data/manifest.json)"
+          if [ "$FORCE" = "true" ] || [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo 'La source ANFR est inchangée ; aucune nouvelle base à publier.' >> "$GITHUB_STEP_SUMMARY"
           fi
+      - name: Récupérer et préparer la nouvelle base
+        if: steps.catalog.outputs.changed == 'true'
+        run: |
+          PREVIOUS_URL="$(jq -r .url data/manifest.json)"
+          curl --fail --location --retry 3 "$PREVIOUS_URL" -o previous/antennas.sqlite.gz
+          gzip -dc previous/antennas.sqlite.gz > previous/antennas.sqlite
+          export PYLO_PREVIOUS_DATABASE="$PWD/previous/antennas.sqlite"
+          export PYLO_SELECTED_RESOURCE="$PWD/output/catalog.json"
           swift run -c release anfr-import output/antennas.sqlite
-          shasum -a 256 output/antennas.sqlite > output/SHA256SUMS
-      - uses: actions/upload-artifact@v4
-        with:
-          name: anfr-validated
-          path: output/
-          retention-days: 90
-      - name: Publier dans le dépôt privé
+          gzip -c output/antennas.sqlite > output/antennas.sqlite.gz
+          TAG="anfr-$(date -u +%Y-%m-%d)-${GITHUB_RUN_ID}"
+          echo "DATA_TAG=$TAG" >> "$GITHUB_ENV"
+          swift run -c release anfr-import --manifest output/antennas.sqlite.gz output/antennas.sqlite output/catalog.json "https://github.com/Logarex/Pylo/releases/download/$TAG/antennas.sqlite.gz" output/manifest.json
+          shasum -a 256 output/antennas.sqlite.gz > output/SHA256SUMS
+      - name: Publier les fichiers immuables
+        if: steps.catalog.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="anfr-$(date -u +%Y-%m-%d)-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" output/antennas.sqlite output/source.json output/SHA256SUMS --title "Antennes ANFR · $(date -u +%Y-%m-%d)" --notes "Base locale ANFR validée. Importe antennas.sqlite dans Pylo, onglet Données. Source ANFR / data.gouv.fr, Licence Ouverte 2.0."
+          gh release create "$DATA_TAG" output/antennas.sqlite.gz output/source.json output/catalog.json output/manifest.json output/SHA256SUMS --title "Antennes ANFR · $(date -u +%Y-%m-%d)" --notes 'Données ANFR validées, Licence Ouverte 2.0. Pylo télécharge automatiquement cette base en Wi-Fi. Publication du manifeste seulement après la mise en ligne des fichiers.'
+      - name: Activer la mise à jour pour les applications
+        if: steps.catalog.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          CURRENT_SHA="$(gh api repos/Logarex/Pylo/contents/data/manifest.json --jq .sha)"
+          CONTENT="$(base64 -i output/manifest.json | tr -d '\n')"
+          jq -n --arg message 'Actualiser la version publique des données ANFR [skip ci]' --arg content "$CONTENT" --arg sha "$CURRENT_SHA" '{message:$message,content:$content,sha:$sha,branch:"main"}' > output/manifest-request.json
+          gh api --method PUT repos/Logarex/Pylo/contents/data/manifest.json --input output/manifest-request.json --silent
+          echo 'Nouvelle base ANFR publiée ; les applications peuvent la récupérer en Wi-Fi.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: steps.catalog.outputs.changed == 'true'
+        with:
+          name: anfr-publication
+          path: |
+            output/manifest.json
+            output/catalog.json
+            output/SHA256SUMS
+          retention-days: 30
