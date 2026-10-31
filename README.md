@@ -17,7 +17,10 @@ Pylo est écrite en Swift, avec une interface native, des données ANFR consulta
 ## Un aperçu de l’app
 
 <p align="center">
-  <img src="docs/pylo-iphone.png" alt="Pylo : interface neutre, suggestions d’adresses, carte ANFR et couleurs par opérateur" width="310">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/pylo-iphone-dark.png">
+    <img src="docs/pylo-iphone.png" alt="Pylo : interface neutre, carte ANFR et couleurs par opérateur adaptées au thème" width="310">
+  </picture>
 </p>
 
 *Capture de la version actuelle dans le simulateur iPhone. Les stations affichées proviennent de la base ANFR ; ce ne sont pas des données de démonstration.*

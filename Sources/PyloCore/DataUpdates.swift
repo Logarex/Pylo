@@ -35,7 +35,9 @@ public enum DataUpdates {
         return hash.finalize().map { String(format: "%02x", $0) }.joined()
     }
     public static func fetchManifest() async throws -> DataManifest {
-        var request = URLRequest(url: manifestURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
+        var components = URLComponents(url: manifestURL, resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "check", value: UUID().uuidString)]
+        var request = URLRequest(url: components.url!, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode == 200, data.count < 65536 else { throw DatabaseError.sqlite("La vérification est momentanément indisponible.") }

@@ -103,20 +103,31 @@ import MapKit
     }
     func importDatabase(_ url: URL) async {
         guard !isUpdating else { return }
+        isUpdating = true
+        defer { isUpdating = false }
         let access = url.startAccessingSecurityScopedResource(); defer { if access { url.stopAccessingSecurityScopedResource() } }
         do {
-            let data = try Data(contentsOf: url)
-            let staging = URL.documentsDirectory.appendingPathComponent("import-\(UUID().uuidString).sqlite")
-            defer { try? FileManager.default.removeItem(at: staging) }
-            try data.write(to: staging)
-            let db = try AntennaDatabase(url: staging); try db.validate(requireEnriched: true)
-            try data.write(to: Self.localDatabase, options: .atomic)
+            let destination = Self.localDatabase
+            let date = try await Task.detached(priority: .userInitiated) {
+                let fm = FileManager.default
+                let staging = destination.deletingLastPathComponent().appendingPathComponent("import-\(UUID().uuidString).sqlite")
+                defer { try? fm.removeItem(at: staging) }
+                if url.pathExtension.lowercased() == "gz" { try AntennaDatabase.unpack(source: url, destination: staging) }
+                else { try fm.copyItem(at: url, to: staging) }
+                let db = try AntennaDatabase(url: staging); try db.validate(requireEnriched: true)
+                let date = try db.sourceDate()
+                if fm.fileExists(atPath: destination.path) { _ = try fm.replaceItemAt(destination, withItemAt: staging) }
+                else { try fm.moveItem(at: staging, to: destination) }
+                return date
+            }.value
             installedDigest = ""; UserDefaults.standard.removeObject(forKey: "installedDataDigest")
-            dataSourceDate = (try? db.sourceDate()) ?? ""
+            dataSourceDate = date
             databaseRevision += 1
+            updateStatus = "Base importée et prête à être utilisée."
             await load()
         } catch { message = "Import impossible : \(error.localizedDescription)" }
     }
+
     func toggle(_ station: Station) { if !favorites.insert(station.id).inserted { favorites.remove(station.id) } }
     func savedStations(ids: Set<String>) async throws -> [Station] {
         guard !ids.isEmpty else { return [] }

@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+private struct StatisticsRequest: Hashable { let operatorName: String; let databaseRevision: Int }
 struct StatisticsView: View {
     @Environment(AppStore.self) private var store
     @State private var stats: NetworkStatistics?
@@ -59,7 +60,7 @@ struct StatisticsView: View {
                     else { ProgressView("Lecture de la base complète…").padding(40) }
                 }.padding(16)
             }.background(Color(.systemGroupedBackground)).navigationTitle("Statistiques").navigationBarTitleDisplayMode(.inline)
-                .task(id: selectedOperator) { await load() }
+                .task(id: StatisticsRequest(operatorName: selectedOperator, databaseRevision: store.databaseRevision)) { await load() }
                 .refreshable { await load() }
         }
     }
@@ -75,9 +76,9 @@ struct StatisticsView: View {
         let op = selectedOperator
         do {
             let value = try await Task.detached { try AntennaDatabase(url: url).statistics(operatorName: op) }.value
-            guard selectedOperator == op else { return }
+            guard selectedOperator == op, !Task.isCancelled else { return }
             stats = value; error = nil
             if op.isEmpty { operators = value.operators.map(\.label) }
-        } catch { self.error = error.localizedDescription; stats = nil }
+        } catch { if !Task.isCancelled { self.error = error.localizedDescription; stats = nil } }
     }
 }
