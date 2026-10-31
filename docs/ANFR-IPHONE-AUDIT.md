@@ -6,11 +6,11 @@ Audit du 31 octobre 2026 sur la copie ANFR du 29 octobre 2026 : **821 309 lignes
 
 - Les adresses contiennent des abréviations de voie présentes dans la source : `r`, `bd`, `av`, `rte`, `chem`, etc. Pylo les développe uniquement au début d’une composante d’adresse, éventuellement après un numéro. Il ne remplace pas les lettres dans les noms propres, ne réinvente pas les accents et ne transforme pas arbitrairement des compléments tels que « Résidence R ».
 - **72 lignes** contiennent un azimut `360`. Il est désormais normalisé à `0°` pour l’affichage ; la valeur originale est conservée.
-- **2 495 lignes** portent `ND` pour leurs azimuts. Cela signifie que la direction n’est pas renseignée, pas qu’elle vaut zéro.
+- **2 495 lignes** portent exactement `ND` pour leurs azimuts et 235 autres contiennent des listes de `ND` répétés, soit **2 730 lignes sans direction exploitable**. Cela signifie que la direction n’est pas renseignée, pas qu’elle vaut zéro.
 - **69 253 lignes** n’ont pas de date système. Pylo laisse cette date absente.
 - Les hauteurs utilisent souvent la virgule décimale : **244 131 lignes** dans cette copie. Ce format est conservé ; une hauteur de support n’est pas assimilée à l’altitude ou à la hauteur exacte d’un panneau.
 - Les colonnes `code_insee` et `com_cd_insee` sont identiques dans cette copie. Elles restent conservées séparément, sans supposer que toutes les publications futures seront identiques.
-- Les codes de nature et de propriétaire n’étaient pas exploités. Les nomenclatures officielles sont maintenant utilisées : 37 types de supports et 83 catégories/propriétaires dans le référentiel consulté.
+- Les codes de nature et de propriétaire n’étaient pas exploités. Les nomenclatures officielles sont maintenant utilisées : 37 types de supports et 83 catégories/propriétaires dans le référentiel consulté. Le code de nature 56 (32 lignes) et le propriétaire 87 (115 lignes) n’y figurent pas : ils restent explicitement non référencés, sans libellé deviné.
 - Les noms des communes proviennent de l’API géographique de l’État, avec une requête distincte pour les 45 arrondissements municipaux de Paris, Lyon et Marseille. Les territoires ou codes absents du référentiel ne reçoivent pas de nom inventé : le code source reste visible.
 
 Les nombres ci-dessus comptent des **lignes de source**, qui peuvent se rapporter à la même station ou au même support. Ce ne sont pas des nombres d’antennes distinctes.
