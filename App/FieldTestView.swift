@@ -7,6 +7,7 @@ struct FieldTestTerm: Identifiable {
 }
 struct FieldTestView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.scenePhase) private var scenePhase
     @State private var search = ""
     @State private var eci = ""
     private let terms: [FieldTestTerm] = [
@@ -39,13 +40,17 @@ struct FieldTestView: View {
                     InfoCard("Ton réseau, en clair.", subtitle: "Un guide à garder à côté de Field Test.") {
                         Text("Pas besoin de noter toutes les valeurs. Commence par la technologie, puis la puissance et la qualité. Les identifiants servent ensuite à chercher la station.")
                     }
-                    InfoCard("Ce que ton iPhone partage avec Pylo") {
-                        LabeledContent("Connexion internet", value: store.device.connection)
-                        LabeledContent("Radio déclarée par iOS", value: store.device.technologies.isEmpty ? "Non disponible" : store.device.technologies.joined(separator: " · "))
-                        LabeledContent("Mode données réduites", value: store.device.constrained ? "Activé" : "Non signalé")
-                        Button("Actualiser", systemImage: "arrow.clockwise") { store.device.refreshRadio() }
-                        Text("La radio déclarée peut concerner plusieurs lignes SIM. Elle n’indique pas forcément le trajet de ton trafic, notamment en Wi-Fi. Sur simulateur, ces informations radio sont généralement absentes.").font(.caption).foregroundStyle(.secondary)
-                        Text("iOS ne donne pas à Pylo le numéro de téléphone, l’IMEI, la cellule utilisée, les bandes actives ni les mesures RSRP/RSRQ/SINR. Le nom opérateur via l’ancienne API n’est plus une base fiable sur iOS récent.").font(.caption).foregroundStyle(.secondary)
+                    InfoCard("Ce que peut lire Pylo", subtitle: "L’accès internet et la radio cellulaire sont deux informations différentes.") {
+                        networkInfo("Connexion internet", value: store.device.connection, icon: store.device.connectionIcon)
+                        Divider()
+                        networkInfo("Technologie cellulaire · 2G à 5G", value: store.device.radioStatus, icon: "simcard")
+                        Text(store.device.radioExplanation).font(.footnote).foregroundStyle(.secondary)
+                        Divider()
+                        networkInfo("Mode données réduites", value: store.device.reducedDataStatus, icon: "arrow.down.circle")
+                        Text("Cet état concerne la connexion internet actuelle, Wi-Fi ou mobile. Il ne mesure pas la qualité du signal.").font(.footnote).foregroundStyle(.secondary)
+                        Button("Actualiser les informations", systemImage: "arrow.clockwise") { store.device.refresh() }
+                        if let date = store.device.lastUpdated { Text("Dernière lecture : \(date.formatted(date: .omitted, time: .standard))").font(.caption).foregroundStyle(.secondary) }
+                        Text("iOS ne donne pas à Pylo le numéro de téléphone, l’IMEI, la cellule utilisée, les bandes actives ni les mesures RSRP/RSRQ/SINR. Le guide ci-dessous explique comment lire ces mesures dans Field Test.").font(.caption).foregroundStyle(.secondary)
                     }
                     InfoCard("1 · Ouvrir Field Test") {
                         Text("Dans Téléphone → Clavier, saisis ce code puis appuie sur Appeler.")
@@ -86,7 +91,18 @@ struct FieldTestView: View {
                     NavigationLink { LearnView() } label: { Label("Comprendre GSM, GPRS, EDGE, UMTS, LTE et NR", systemImage: "book") }.padding()
                 }.padding(16)
             }.background(Color(.systemGroupedBackground)).navigationTitle("Field Test").navigationBarTitleDisplayMode(.inline)
-                .task { store.device.refreshRadio() }
+                .task { store.device.refresh() }
+                .onChange(of: scenePhase) { if scenePhase == .active { store.device.refresh() } }
+        }
+    }
+    private func networkInfo(_ title: String, value: String, icon: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon).foregroundStyle(Palette.accent).frame(width: 24).padding(.top, 3)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title).font(.caption).foregroundStyle(.secondary)
+                Text(value).font(.headline).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
         }
     }
     private var decodedECI: UInt32? {

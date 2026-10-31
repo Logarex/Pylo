@@ -12,7 +12,7 @@ Je suis étudiant et j’ai créé Pylo pour comprendre les antennes autour de m
 
 Pylo est écrite en Swift, avec une interface native, des données ANFR consultables hors ligne et un guide pour apprendre à lire Field Test sans se perdre dans les acronymes.
 
-**Gratuite · développée par un étudiant · code sous licence GPL-3.0.** Le dépôt reste privé pendant le développement ; l’ouverture publique du code viendra ensuite.
+**Gratuite · développée par un étudiant · code sous licence GPL-3.0.**
 
 ## Un aperçu de l’app
 
@@ -72,7 +72,7 @@ Un dictionnaire permet de rechercher un terme. Le décodeur **ECI LTE** accepte 
 
 ### Voir les informations accessibles sur iPhone
 
-Pylo affiche le type de connexion internet, les technologies radio déclarées par iOS pour les lignes disponibles et l’état du mode données réduites. La localisation et la boussole sont utilisées à la demande pour les distances et les directions.
+Pylo affiche le type de connexion internet, les technologies radio déclarées par iOS pour les lignes disponibles et l’état du mode données réduites sur la connexion active. Une information radio non transmise est expliquée séparément, sans être confondue avec une absence de réseau. Le bouton d’actualisation relit la connexion et les informations radio ; les changements radio et le retour dans l’app déclenchent aussi une lecture. La localisation et la boussole sont utilisées à la demande pour les distances et les directions.
 
 iOS ne donne pas aux apps l’accès public à la cellule connectée, aux bandes actives ou aux mesures radio brutes RSRP/RSRQ/SINR. Les données disponibles dépendent de l’appareil et du réseau ; sur simulateur, les informations cellulaires sont généralement absentes. Les menus Field Test changent aussi selon le modem, iOS et l’opérateur.
 

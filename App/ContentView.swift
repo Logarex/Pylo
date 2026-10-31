@@ -144,14 +144,39 @@ struct ExplorerView: View {
         } catch { searchMessage = "La recherche nécessite une connexion." }
     }
 }
+private struct FavoritesRequest: Hashable {
+    let ids: Set<String>
+    let databaseRevision: Int
+}
 struct FavoritesView: View {
     @Environment(AppStore.self) private var store
     @State private var saved: [Station] = []
+    @State private var loading = false
+    @State private var error: String?
     var body: some View {
+        let request = FavoritesRequest(ids: store.favorites, databaseRevision: store.databaseRevision)
         NavigationStack {
             List(saved) { station in NavigationLink { StationDetail(station: station) } label: { StationRow(station: station) } }
-                .overlay { if saved.isEmpty { ContentUnavailableView("Tes antennes, de côté", systemImage: "star", description: Text("Ajoute une station depuis la carte pour la retrouver ici.")) } }
-                .navigationTitle("Favoris").task { saved = store.savedStations() }.onChange(of: store.favorites) { saved = store.savedStations() }
+                .overlay {
+                    if saved.isEmpty {
+                        if loading { ProgressView("Lecture de tes favoris…") }
+                        else if let error { ContentUnavailableView("Favoris indisponibles", systemImage: "exclamationmark.circle", description: Text(error)) }
+                        else { ContentUnavailableView("Tes antennes, de côté", systemImage: "star", description: Text(store.favorites.isEmpty ? "Ajoute une station depuis la carte pour la retrouver ici." : "Ces stations ne figurent plus dans la base actuelle. Tes identifiants favoris sont conservés.")) }
+                    }
+                }
+                .navigationTitle("Favoris")
+                .task(id: request) {
+                    guard !request.ids.isEmpty else { saved = []; error = nil; loading = false; return }
+                    loading = saved.isEmpty
+                    do {
+                        let result = try await store.savedStations(ids: request.ids)
+                        guard !Task.isCancelled else { return }
+                        saved = result; error = nil; loading = false
+                    } catch {
+                        guard !Task.isCancelled else { return }
+                        self.error = error.localizedDescription; loading = false
+                    }
+                }
         }
     }
 }

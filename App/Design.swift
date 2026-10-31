@@ -33,18 +33,55 @@ struct InfoCard<Content: View>: View {
     private let monitor = NWPathMonitor()
     var connection = "Vérification…"
     var expensive = false
-    var constrained = false
+    var constrained: Bool?
+    var lastUpdated: Date?
+    private var hasPath = false
+    @ObservationIgnored private var radioTask: Task<Void, Never>?
+    var isSimulator: Bool {
+        #if targetEnvironment(simulator)
+        true
+        #else
+        false
+        #endif
+    }
+    var connectionIcon: String { connection == "Wi-Fi" ? "wifi" : connection == "Réseau mobile" ? "antenna.radiowaves.left.and.right" : "network" }
+    var radioStatus: String { technologies.isEmpty ? (isSimulator ? "Indisponible sur simulateur" : "Non transmis par iOS") : technologies.joined(separator: " · ") }
+    var radioExplanation: String {
+        if isSimulator { return "Le simulateur ne possède pas de modem cellulaire. La technologie 2G/3G/4G/5G doit être vérifiée sur un vrai iPhone." }
+        if technologies.isEmpty { return "iOS n’a pas fourni la technologie cellulaire à Pylo lors de cette lecture. Cela ne signifie pas que tu n’as pas de réseau. Le menu Field Test peut donner plus d’informations." }
+        return "Technologies déclarées par les lignes SIM disponibles. Elles ne décrivent pas forcément la connexion qui transporte ton trafic internet, notamment en Wi-Fi."
+    }
+    var reducedDataStatus: String {
+        guard let constrained else { return hasPath ? "Sans connexion active" : "Vérification…" }
+        return constrained ? "Activé sur cette connexion" : "Désactivé sur cette connexion"
+    }
     var technologies: [String] = []
     init() {
         monitor.pathUpdateHandler = { [weak self] path in
-            let connection = path.status != .satisfied ? "Hors ligne" : path.usesInterfaceType(.wifi) ? "Wi-Fi" : path.usesInterfaceType(.cellular) ? "Réseau mobile" : "Autre connexion"
-            let expensive = path.isExpensive, constrained = path.isConstrained
-            Task { @MainActor [weak self] in self?.connection = connection; self?.expensive = expensive; self?.constrained = constrained; self?.refreshRadio() }
+            Task { @MainActor [weak self] in self?.apply(path) }
         }
         monitor.start(queue: DispatchQueue(label: "fr.logarex.pylo.network"))
+        radioTask = Task { @MainActor [weak self] in
+            for await _ in NotificationCenter.default.notifications(named: .CTServiceRadioAccessTechnologyDidChange).map({ _ in true }) {
+                guard let self else { return }
+                self.refreshRadio()
+            }
+        }
         refreshRadio()
     }
+    private func apply(_ path: NWPath) {
+        hasPath = true
+        connection = path.status != .satisfied ? "Hors ligne" : path.usesInterfaceType(.wifi) ? "Wi-Fi" : path.usesInterfaceType(.cellular) ? "Réseau mobile" : "Autre connexion"
+        expensive = path.isExpensive
+        constrained = path.status == .satisfied ? path.isConstrained : nil
+        refreshRadio()
+    }
+    func refresh() {
+        if hasPath { apply(monitor.currentPath) }
+        else { refreshRadio() }
+    }
     func refreshRadio() {
+        lastUpdated = Date()
         technologies = Array(Set((telephony.serviceCurrentRadioAccessTechnology ?? [:]).values.map { value in
             switch value {
             case CTRadioAccessTechnologyGPRS: return "2G · GPRS"
@@ -59,7 +96,7 @@ struct InfoCard<Content: View>: View {
             }
         })).sorted()
     }
-    deinit { monitor.cancel() }
+    deinit { radioTask?.cancel(); monitor.cancel() }
 }
 func operatorDisplayName(_ name: String) -> String {
     switch name {

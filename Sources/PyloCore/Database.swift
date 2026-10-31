@@ -39,6 +39,17 @@ public final class AntennaDatabase {
         }
         return result
     }
+    public func stations(ids: Set<String>) throws -> [Station] {
+        guard !ids.isEmpty else { return [] }
+        let values = ids.sorted()
+        var result: [Station] = []
+        for start in stride(from: 0, to: values.count, by: 500) {
+            let chunk = values[start..<min(start+500, values.count)].map(quote).joined(separator: ",")
+            let found = try rows("SELECT id,operatorName,latitude,longitude,address,systems,status,updated,supportID,height FROM stations WHERE id IN (\(chunk))")
+            result += found.map { Station(id: $0[0], operatorName: $0[1], latitude: Double($0[2]) ?? 0, longitude: Double($0[3]) ?? 0, address: $0[4], systems: $0[5], status: $0[6], updated: $0[7], supportID: $0[8], height: $0[9]) }
+        }
+        return result.sorted { a,b in a.operatorName == b.operatorName ? a.id < b.id : a.operatorName < b.operatorName }
+    }
     private func rows(_ sql: String) throws -> [[String]] {
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { throw DatabaseError.sqlite("Cette base doit être mise à jour pour afficher ces informations.") }

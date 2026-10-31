@@ -9,6 +9,7 @@ import MapKit
     var message: String?
     var loading = false
     var ready = false
+    var databaseRevision = 0
     var generation = ""
     var operatorName = ""
     var favorites: Set<String> { didSet { UserDefaults.standard.set(Array(favorites), forKey: "favorites") } }
@@ -59,13 +60,17 @@ import MapKit
             try data.write(to: staging)
             let db = try AntennaDatabase(url: staging); try db.validate(requireEnriched: true)
             try data.write(to: Self.localDatabase, options: .atomic)
+            databaseRevision += 1
             await load()
         } catch { message = "Import impossible : \(error.localizedDescription)" }
     }
     func toggle(_ station: Station) { if !favorites.insert(station.id).inserted { favorites.remove(station.id) } }
-    func savedStations() -> [Station] {
-        guard let url = databaseURL, let db = try? AntennaDatabase(url: url), let all = try? db.stations(limit: 200000) else { return [] }
-        return all.filter { favorites.contains($0.id) }
+    func savedStations(ids: Set<String>) async throws -> [Station] {
+        guard !ids.isEmpty else { return [] }
+        guard let url = databaseURL else { throw DatabaseError.sqlite("Base ANFR indisponible.") }
+        return try await Task.detached(priority: .userInitiated) {
+            try AntennaDatabase(url: url).stations(ids: ids)
+        }.value
     }
 }
 @MainActor @Observable final class LocationService: NSObject, @preconcurrency CLLocationManagerDelegate {

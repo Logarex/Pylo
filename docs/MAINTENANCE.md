@@ -32,3 +32,9 @@ Les mises à jour de marqueurs sont différées pendant un geste. Les images de 
 Les flèches sont dessinées dans un UIView transparent au-dessus de la carte. Leur point de départ est calculé depuis la tête du MKMarkerAnnotationView. Leur direction est projetée depuis les coordonnées géographiques via MapKit pour suivre la rotation et l’inclinaison de la carte. Le trait coloré fait 2,5 points avec un contour clair de 5 points ; sa partie visible fait 30 points. La couche est cachée pendant les gestes et reste limitée à 48 flèches.
 
 Les orientations des supports principaux de toutes les stations chargées sont récupérées dans une seule requête SQLite. Ne pas limiter ce chargement aux premières stations : des marqueurs isolés visibles pourraient sinon ne jamais avoir de flèches. La barre de navigation est entièrement masquée uniquement sur la page Explorer.
+
+### Favoris et informations réseau
+
+Les favoris utilisent une requête sur la clé primaire des identifiants enregistrés, en lots de 500, hors du fil principal. Une liste vide n’ouvre pas la base. La tâche se relance seulement à l’apparition de la vue, lors d’un changement de favoris ou après un import de base ; les résultats d’une tâche annulée ne remplacent pas l’affichage courant.
+
+Le suivi réseau distingue le chemin internet NWPath de la technologie CoreTelephony, et les états non lus/connexion absente de la valeur false de isConstrained. Le bouton Actualiser relit les deux sources. Les notifications de changement radio et le retour au premier plan actualisent les informations disponibles. Aucune valeur 4G/5G n’est déduite du Wi-Fi ni inventée lorsqu’iOS ne répond pas.

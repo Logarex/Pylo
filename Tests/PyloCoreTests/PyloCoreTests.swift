@@ -81,5 +81,19 @@ final class PyloCoreTests: XCTestCase {
         XCTAssertEqual(repeated.count, 1)
         XCTAssertTrue(OrientationPlan.make(stations: stations, directions: [:], latitude: 48, longitude: 2).isEmpty)
     }
+    func testFavoriteLookupOnlyReturnsRequestedIDs() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let db = try AntennaDatabase(url: url, writable: true); try db.prepareImport()
+        for id in ["a", "b", "c'quoted"] {
+            try db.insert(id: id, operatorName: "SFR", lat: 48, lon: 2, address: "", system: "LTE 700", status: "En service", updated: "2026-10-29")
+        }
+        try db.finishImport()
+        XCTAssertEqual(try db.stations(ids: ["a", "c'quoted", "missing"]).map(\.id), ["a", "c'quoted"])
+        XCTAssertTrue(try db.stations(ids: []).isEmpty)
+        XCTAssertTrue(try db.stations(ids: ["unknown' OR 1=1 --"]).isEmpty)
+        let many = Set((0..<505).map { "missing-\($0)" } + ["b"])
+        XCTAssertEqual(try db.stations(ids: many).map(\.id), ["b"])
+    }
     func testECI() { XCTAssertEqual(Radio.enodeB(25601),100); XCTAssertEqual(Radio.sector(25601),1) }
 }
