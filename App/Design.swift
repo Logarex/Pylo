@@ -28,8 +28,20 @@ struct InfoCard<Content: View>: View {
         }.frame(maxWidth: .infinity, alignment: .leading).padding(20).background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 24))
     }
 }
+struct RadioLine: Identifiable {
+    let id: Int
+    let name: String
+    let technology: String
+    let dataLine: Bool
+}
 @MainActor @Observable final class DeviceNetworkInfo {
     private let telephony = CTTelephonyNetworkInfo()
+    private let cellularPolicy = CTCellularData()
+    var cellularAccess = "Vérification…"
+    var supportsIPv4: Bool?
+    var supportsIPv6: Bool?
+    var supportsDNS: Bool?
+    var radioLines: [RadioLine] = []
     private let monitor = NWPathMonitor()
     var connection = "Vérification…"
     var expensive = false
@@ -57,6 +69,9 @@ struct InfoCard<Content: View>: View {
     }
     var technologies: [String] = []
     init() {
+        cellularPolicy.cellularDataRestrictionDidUpdateNotifier = { [weak self] _ in
+            Task { @MainActor [weak self] in self?.refreshRadio() }
+        }
         monitor.pathUpdateHandler = { [weak self] path in
             Task { @MainActor [weak self] in self?.apply(path) }
         }
@@ -73,6 +88,9 @@ struct InfoCard<Content: View>: View {
         hasPath = true
         connection = path.status != .satisfied ? "Hors ligne" : path.usesInterfaceType(.wifi) ? "Wi-Fi" : path.usesInterfaceType(.cellular) ? "Réseau mobile" : "Autre connexion"
         expensive = path.isExpensive
+        supportsIPv4 = path.status == .satisfied ? path.supportsIPv4 : nil
+        supportsIPv6 = path.status == .satisfied ? path.supportsIPv6 : nil
+        supportsDNS = path.status == .satisfied ? path.supportsDNS : nil
         constrained = path.status == .satisfied ? path.isConstrained : nil
         refreshRadio()
     }
@@ -82,7 +100,12 @@ struct InfoCard<Content: View>: View {
     }
     func refreshRadio() {
         lastUpdated = Date()
-        technologies = Array(Set((telephony.serviceCurrentRadioAccessTechnology ?? [:]).values.map { value in
+        switch cellularPolicy.restrictedState {
+        case .restricted: cellularAccess = "Restreint pour Pylo"
+        case .notRestricted: cellularAccess = "Non restreint par iOS"
+        default: cellularAccess = "État non transmis par iOS"
+        }
+        func name(_ value: String) -> String {
             switch value {
             case CTRadioAccessTechnologyGPRS: return "2G · GPRS"
             case CTRadioAccessTechnologyEdge: return "2G · EDGE"
@@ -94,7 +117,12 @@ struct InfoCard<Content: View>: View {
             case CTRadioAccessTechnologyNR: return "5G NR"
             default: return value.replacingOccurrences(of: "CTRadioAccessTechnology", with: "")
             }
-        })).sorted()
+        }
+        let services = (telephony.serviceCurrentRadioAccessTechnology ?? [:]).sorted { $0.key < $1.key }
+        radioLines = services.enumerated().map { index, service in
+            RadioLine(id: index, name: "Ligne \(index+1)", technology: name(service.value), dataLine: service.key == telephony.dataServiceIdentifier)
+        }
+        technologies = Array(Set(radioLines.map(\.technology))).sorted()
     }
     deinit { radioTask?.cancel(); monitor.cancel() }
 }

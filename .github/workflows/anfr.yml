@@ -45,6 +45,11 @@ jobs:
           PREVIOUS_URL="$(jq -r .url data/manifest.json)"
           curl --fail --location --retry 3 "$PREVIOUS_URL" -o previous/antennas.sqlite.gz
           gzip -dc previous/antennas.sqlite.gz > previous/antennas.sqlite
+          if swift run -c release anfr-import --references output/references.json; then
+            export PYLO_REFERENCES="$PWD/output/references.json"
+          else
+            echo 'Référentiels temporairement indisponibles ; copie incluse dans le projet utilisée.' >> "$GITHUB_STEP_SUMMARY"
+          fi
           export PYLO_PREVIOUS_DATABASE="$PWD/previous/antennas.sqlite"
           export PYLO_SELECTED_RESOURCE="$PWD/output/catalog.json"
           swift run -c release anfr-import output/antennas.sqlite
@@ -58,7 +63,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$DATA_TAG" output/antennas.sqlite.gz output/source.json output/catalog.json output/manifest.json output/SHA256SUMS --title "Antennes ANFR · $(date -u +%Y-%m-%d)" --notes 'Données ANFR validées, Licence Ouverte 2.0. Pylo télécharge automatiquement cette base en Wi-Fi. Publication du manifeste seulement après la mise en ligne des fichiers.'
+          gh release create "$DATA_TAG" output/antennas.sqlite.gz output/source.json output/catalog.json output/manifest.json output/quality.json output/SHA256SUMS --title "Antennes ANFR · $(date -u +%Y-%m-%d)" --notes 'Données ANFR validées, Licence Ouverte 2.0. Pylo télécharge automatiquement cette base en Wi-Fi. Publication du manifeste seulement après la mise en ligne des fichiers.'
       - name: Activer la mise à jour pour les applications
         if: steps.catalog.outputs.changed == 'true'
         env:

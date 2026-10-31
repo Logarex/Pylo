@@ -122,5 +122,34 @@ final class PyloCoreTests: XCTestCase {
         let unknown = DataManifest(sourceVersion: "test", sourceDate: "2026-10-29", url: manifest.url, sha256: "bad", compressedBytes: 0, uncompressedBytes: 0)
         XCTAssertThrowsError(try unknown.validate())
     }
+    func testANFRAddressAndValues() {
+        XCTAssertEqual(ANFRAddress.readable("r du château d’eau, 75001"), "Rue du château d’eau, 75001")
+        XCTAssertEqual(ANFRAddress.readable("12 bis bd. Victor Hugo"), "12 bis Boulevard Victor Hugo")
+        XCTAssertEqual(ANFRAddress.readable("rte de la Gare, chem rural"), "Route de la Gare, Chemin rural")
+        XCTAssertEqual(ANFRAddress.readable("Résidence R, parc SNCF, R.D. 45"), "Résidence R, parc SNCF, R.D. 45")
+        XCTAssertEqual(ANFRAddress.full("r de Paris, 75001",commune: "Paris"), "Rue de Paris, 75001 Paris")
+        XCTAssertEqual(ANFRAddress.full("r de Paris, Paris, 75001",commune: "Paris"), "Rue de Paris, Paris, 75001")
+        XCTAssertEqual(ANFRValues.azimuths("360|0|90|ND|-1|361|nan|90"), [0,90])
+        XCTAssertTrue(ANFRValues.azimuths("ND").isEmpty)
+        XCTAssertEqual(Radio.generation("UNKNOWN"), "Inconnue")
+    }
+    func testSourceRoundTripPreservesOriginalFields() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let db = try AntennaDatabase(url: root,writable:true); try db.prepareImport()
+        let refs = try JSONDecoder().decode(ANFRReferences.self,from: Data(#"{"date":"2026-10-31","natures":{"23":"Pylône"},"owners":{"4":"BOUYGUES"},"communes":{"75056":"Paris"},"sources":[]}"#.utf8))
+        let row = ["id":"001", "sta_nm_anfr":"station", "sup_id":"support", "adm_lb_nom":"SFR", "emr_lb_systeme":"LTE 700", "generation":"4G", "emr_dt":"", "statut":"Projet approuvé", "list_azimut":"360|ND", "nat_id":"23", "tpo_id":"4", "com_cd_insee":"75056", "adr_lb_add1":"r de l’église", "adr_nm_cp":"75001", "sup_nm_haut":"17,3"]
+        try db.appendSource(row,references:refs)
+        var second = row; second["id"]="002"; second["emr_lb_systeme"]="UMTS 900"; second["generation"]="3G"
+        try db.appendSource(second,references:refs)
+        try db.insert(id:"station",operatorName:"SFR",lat:48,lon:2,address:"r de l’église, 75001",system:"LTE 700",status:"Projet approuvé",updated:"2026-10-29",commune:"Paris")
+        try db.finishImport()
+        let details = try XCTUnwrap(db.sourceDetails(for:"station").first)
+        XCTAssertEqual(details.details.nature,"Pylône"); XCTAssertEqual(details.details.owner,"BOUYGUES")
+        XCTAssertEqual(details.records.count,2)
+        let original = try JSONDecoder().decode([[String:String]].self,from:Data(details.exportJSON.utf8))
+        XCTAssertEqual(original,[row,second])
+        XCTAssertEqual(try db.stations(ids:["station"]).first?.readableAddress,"Rue de l’église, 75001 Paris")
+    }
     func testECI() { XCTAssertEqual(Radio.enodeB(25601),100); XCTAssertEqual(Radio.sector(25601),1) }
 }

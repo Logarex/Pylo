@@ -16,7 +16,7 @@ struct ContentView: View {
         }
         } else { ProgressView("Préparation des données ANFR…").padding() }
         }.task { await store.prepare(); await store.checkDataUpdates(automatic: true) }
-        .onChange(of: scenePhase) { if scenePhase == .active { Task { await store.checkDataUpdates(automatic: true) } } }
+        .onChange(of: scenePhase) { if scenePhase == .active { store.location.resumeIfNeeded(); Task { await store.checkDataUpdates(automatic: true) } } else { store.location.suspend() } }
         .onChange(of: store.device.connection) { Task { await store.checkDataUpdates(automatic: true) } }
     }
 }
@@ -33,7 +33,7 @@ struct StationRow: View {
             Image(systemName: "antenna.radiowaves.left.and.right").font(.title2).foregroundStyle(Palette.operatorColor(station.operatorName)).frame(width: 44, height: 44).background(Palette.operatorColor(station.operatorName).opacity(0.12), in: .rect(cornerRadius: 14))
             VStack(alignment: .leading, spacing: 7) {
                 Text(operatorDisplayName(station.operatorName)).font(.headline)
-                Text(station.address).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                Text(station.readableAddress).font(.caption).foregroundStyle(.secondary).lineLimit(2)
                 HStack(spacing: 5) { ForEach(["2G","3G","4G","5G"].filter { g in station.systems.components(separatedBy: " · ").contains { Radio.generation($0) == g } }, id: \.self) { g in Text(g).font(.caption2.bold()).padding(.horizontal, 7).padding(.vertical, 3).background(Palette.generation(g).opacity(0.13), in: Capsule()).foregroundStyle(Palette.generation(g)) } }
             }
         }.padding(.vertical, 6)

@@ -5,18 +5,21 @@ public struct Station: Identifiable, Hashable, Sendable {
     public let latitude: Double
     public let longitude: Double
     public let address: String
+    public var readableAddress: String { ANFRAddress.full(address, commune: commune) }
     public let systems: String
     public let status: String
     public let updated: String
     public let supportID: String
     public let height: String
+    public var commune: String = ""
 }
 public enum Radio {
     public static func generation(_ system: String) -> String {
         if system.contains("5G") { return "5G" }
         if system.contains("LTE") { return "4G" }
         if system.contains("UMTS") { return "3G" }
-        return "2G"
+        if system.contains("GSM") { return "2G" }
+        return "Inconnue"
     }
     public static func enodeB(_ eci: UInt32) -> UInt32 { eci / 256 }
     public static func sector(_ eci: UInt32) -> UInt32 { eci % 256 }

@@ -53,3 +53,9 @@ Afficher `*3001#12345#*` avec Text(verbatim:) pour conserver les astérisques. L
 MKLocalSearchCompleter intervient après deux caractères et 250 ms de pause. Les requêtes obsolètes sont annulées ; une sélection passe à MKLocalSearch.Request(completion:). Les suggestions sont limitées à cinq dans une liste défilante.
 
 Avant une distribution, vérifier sur iPhone la localisation autorisée/refusée, la boussole, VoiceOver, les grandes tailles de texte, les deux thèmes, l’usage hors ligne, les gestes de carte, un téléchargement réel et un échec de téléchargement. Sélectionner une équipe Apple pour la signature et finaliser les métadonnées de distribution.
+
+## Audit ANFR et iPhone
+
+Voir ANFR-IPHONE-AUDIT.md pour la correspondance des 23 colonnes. L’import garde une table supplémentaire anfr_details, compatible avec le schéma Pylo 2, et une colonne commune facultative en fin de table stations. Les anciennes copies sans détails restent lisibles. Ne jamais réécrire l’adresse brute : la présentation passe par ANFRAddress. Les références de noms sont rafraîchies par `anfr-import --references` et une copie de repli est incluse dans les ressources de l’importeur.
+
+Chaque préparation produit quality.json. Les azimuts 360° valent 0° pour l’affichage, mais l’export garde la chaîne originale. Les enregistrements source conservent aussi les dates et états propres à chaque support/système, au-delà de la synthèse station–bande.

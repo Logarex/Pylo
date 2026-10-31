@@ -9,6 +9,10 @@ struct CatalogSelection: Codable { let version: String; let resource: Resource }
 @main struct Importer {
     static func main() async throws {
         let args = CommandLine.arguments
+        if args.count == 3 && args[1] == "--references" {
+            try await refreshReferences(at: URL(fileURLWithPath: args[2]))
+            return
+        }
         if args.count == 3 && args[1] == "--verify-update" {
             let manifest = try await DataUpdates.fetchManifest()
             try await DataUpdates.install(manifest, at: URL(fileURLWithPath: args[2]))
@@ -55,30 +59,79 @@ struct CatalogSelection: Codable { let version: String; let resource: Resource }
             csv = found
             try meta.write(to: output.deletingLastPathComponent().appendingPathComponent("source.json"), options: .atomic)
         }
+        let referenceURL = ProcessInfo.processInfo.environment["PYLO_REFERENCES"].map { URL(fileURLWithPath: $0) } ?? Bundle.module.url(forResource: "references", withExtension: "json")!
+        let references = try JSONDecoder().decode(ANFRReferences.self, from: Data(contentsOf: referenceURL))
         let temporary = work.appendingPathComponent("antennas.sqlite")
         let db = try AntennaDatabase(url: temporary, writable: true); try db.prepareImport()
         var header: [String] = []; var count = 0
+        var quality = ["missingDates":0,"unknownAzimuthRows":0,"north360Rows":0,"unknownNatureCodes":0,"unknownOwnerCodes":0,"unknownCommuneCodes":0,"zeroHeightRows":0]
+        var sourceIDs: Set<String> = []
         let text = try String(contentsOf: csv, encoding: .utf8)
         try CSV.rows(text) { row in
             if header.isEmpty {
-                header = row
-                guard ["sta_nm_anfr","adm_lb_nom","coordonnees","generation","emr_lb_systeme","statut","date_maj","sup_id","sup_nm_haut","emr_dt","list_azimut"].allSatisfy(header.contains) else { throw DatabaseError.sqlite("Le schéma ANFR a changé : mise à jour interrompue.") }
+                header = row.map { $0.replacingOccurrences(of: "\u{feff}", with: "").trimmingCharacters(in: .whitespacesAndNewlines) }
+                guard ["id","adm_lb_nom","sup_id","emr_lb_systeme","emr_dt","sta_nm_dpt","code_insee","generation","date_maj","sta_nm_anfr","nat_id","sup_nm_haut","tpo_id","adr_lb_lieu","adr_lb_add1","adr_lb_add2","adr_lb_add3","adr_nm_cp","com_cd_insee","coordonnees","coord","statut","list_azimut"].allSatisfy(header.contains) else { throw DatabaseError.sqlite("Le schéma ANFR a changé : mise à jour interrompue.") }
                 return
             }
             guard row.count == header.count else { throw DatabaseError.sqlite("Ligne CSV mal formée") }
             func value(_ name: String) -> String { header.firstIndex(of: name).map { row[$0] } ?? "" }
             guard ["2G","3G","4G","5G"].contains(value("generation")) else { return }
+            guard !value("id").isEmpty, sourceIDs.insert(value("id")).inserted else { throw DatabaseError.sqlite("Identifiant de ligne ANFR vide ou en doublon") }
+            if value("emr_dt").isEmpty { quality["missingDates",default:0] += 1 }
+            if ANFRValues.azimuths(value("list_azimut")).isEmpty { quality["unknownAzimuthRows",default:0] += 1 }
+            if value("list_azimut").split(separator:"|").contains("360") { quality["north360Rows",default:0] += 1 }
+            if references.natures[value("nat_id")] == nil { quality["unknownNatureCodes",default:0] += 1 }
+            if references.owners[value("tpo_id")] == nil { quality["unknownOwnerCodes",default:0] += 1 }
+            if references.communes[value("com_cd_insee")] == nil { quality["unknownCommuneCodes",default:0] += 1 }
+            if Double(value("sup_nm_haut").replacingOccurrences(of:",",with:".")) == 0 { quality["zeroHeightRows",default:0] += 1 }
             let coord = value("coordonnees").split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
             guard coord.count == 2, let lat = Double(coord[0]), let lon = Double(coord[1]), (-90...90).contains(lat), (-180...180).contains(lon), !value("sta_nm_anfr").isEmpty else { throw DatabaseError.sqlite("Coordonnées ANFR invalides") }
             let address = ["adr_lb_lieu","adr_lb_add1","adr_lb_add2","adr_lb_add3","adr_nm_cp"].map(value).filter { !$0.isEmpty }.joined(separator: ", ")
-            try db.insert(id: value("sta_nm_anfr"), operatorName: value("adm_lb_nom"), lat: lat, lon: lon, address: address, system: value("emr_lb_systeme"), status: value("statut"), updated: value("date_maj"), supportID: value("sup_id"), height: value("sup_nm_haut"), deployment: value("emr_dt"), azimuths: value("list_azimut")); count += 1
+            try db.appendSource(Dictionary(uniqueKeysWithValues: zip(header,row)), references: references)
+            try db.insert(id: value("sta_nm_anfr"), operatorName: value("adm_lb_nom"), lat: lat, lon: lon, address: address, system: value("emr_lb_systeme"), status: value("statut"), updated: value("date_maj"), supportID: value("sup_id"), height: value("sup_nm_haut"), deployment: value("emr_dt"), azimuths: value("list_azimut"), commune: references.communes[value("com_cd_insee")] ?? ""); count += 1
         }
         guard count > 1000 else { throw DatabaseError.sqlite("Import anormalement petit, ancienne base conservée.") }
         try db.finishImport()
         if let previous = ProcessInfo.processInfo.environment["PYLO_PREVIOUS_DATABASE"] { try db.recordComparison(previous: URL(fileURLWithPath: previous)) }
         try db.validate()
         let data = try Data(contentsOf: temporary); try data.write(to: output, options: .atomic)
+        quality["sourceRows"] = count; quality["sourceColumns"] = header.count
+        let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted,.sortedKeys]
+        try encoder.encode(quality).write(to: output.deletingLastPathComponent().appendingPathComponent("quality.json"), options: .atomic)
         print("Import terminé : \(count) systèmes ; \(data.count / 1_000_000) Mo.")
+    }
+    static func refreshReferences(at destination: URL) async throws {
+        struct Commune: Decodable { let code: String; let nom: String }
+        func download(_ url: URL) async throws -> Data {
+            let (data,response) = try await URLSession.shared.data(from:url)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw DatabaseError.sqlite("Référentiel officiel indisponible") }
+            return data
+        }
+        let catalog = try await download(URL(string:"https://data-backoffice.anfr.fr/api/3/action/package_show?id=observatoire_2g_3g_4g")!)
+        let json = try JSONSerialization.jsonObject(with:catalog) as? [String:Any]
+        guard let result = json?["result"] as? [String:Any], let resources = result["resources"] as? [[String:Any]] else { throw DatabaseError.sqlite("Catalogue des nomenclatures ANFR invalide") }
+        var mappings: [String:[String:String]] = [:]
+        var sources: [String] = []
+        for (name,key) in [("NAT_ID.txt","natures"),("TPO_ID.txt","owners")] {
+            guard let raw = resources.first(where: { $0["name"] as? String == name })?["url"] as? String,
+                  let url = URL(string:raw),url.scheme == "https",url.host == "data.anfr.fr" else { throw DatabaseError.sqlite("Nomenclature ANFR introuvable") }
+            let data = try await download(url)
+            guard let text = String(data:data,encoding:.utf8) ?? String(data:data,encoding:.isoLatin1) else { throw DatabaseError.sqlite("Encodage du référentiel ANFR inconnu") }
+            var values: [String:String] = [:]
+            CSV.rows(text) { row in if row.count >= 2, Int(row[0]) != nil { values[row[0]] = row[1] } }
+            guard values.count > 20 else { throw DatabaseError.sqlite("Nomenclature ANFR vide ou incomplète") }
+            mappings[key] = values; sources.append(raw)
+        }
+        let geo = "https://geo.api.gouv.fr/communes?fields=code,nom&format=json"
+        let communes = try JSONDecoder().decode([Commune].self, from: await download(URL(string:geo)!))
+        guard communes.count > 20000 else { throw DatabaseError.sqlite("Référentiel des communes incomplet") }
+        let boroughURL = "https://geo.api.gouv.fr/communes?type=arrondissement-municipal&fields=code,nom&format=json"
+        let boroughs = try JSONDecoder().decode([Commune].self, from: await download(URL(string:boroughURL)!))
+        var communeNames = Dictionary(uniqueKeysWithValues: communes.map { ($0.code,$0.nom) })
+        for borough in boroughs { communeNames[borough.code] = borough.nom }
+        sources.append(contentsOf: [geo,boroughURL])
+        let output: [String:Any] = ["date":String(ISO8601DateFormatter().string(from:Date()).prefix(10)),"natures":mappings["natures"]!,"owners":mappings["owners"]!,"communes":communeNames,"sources":sources]
+        try JSONSerialization.data(withJSONObject:output,options:[.sortedKeys]).write(to:destination,options:.atomic)
     }
     static func latestResource() async throws -> (Data, Resource) {
         let endpoint = URL(string: "https://www.data.gouv.fr/api/1/datasets/6ab291cf426d615c84196260/")!

@@ -45,12 +45,39 @@ struct FieldTestView: View {
                         Divider()
                         networkInfo("Technologie cellulaire · 2G à 5G", value: store.device.radioStatus, icon: "simcard")
                         Text(store.device.radioExplanation).font(.footnote).foregroundStyle(.secondary)
+                        ForEach(store.device.radioLines) { line in
+                            LabeledContent(line.dataLine ? "\(line.name) · données mobiles" : line.name, value: line.technology)
+                        }
+                        DisclosureGroup("Détails de la connexion") {
+                            LabeledContent("Accès cellulaire de Pylo", value: store.device.cellularAccess)
+                            Text("Cet état décrit une restriction d’accès pour l’app, pas une garantie de couverture mobile.").font(.caption).foregroundStyle(.secondary)
+                            if let ipv4 = store.device.supportsIPv4 { LabeledContent("IPv4 disponible", value: ipv4 ? "Oui" : "Non") }
+                            if let ipv6 = store.device.supportsIPv6 { LabeledContent("IPv6 disponible", value: ipv6 ? "Oui" : "Non") }
+                            if let dns = store.device.supportsDNS { LabeledContent("DNS disponible", value: dns ? "Oui" : "Non") }
+                            LabeledContent("Connexion marquée coûteuse", value: store.device.expensive ? "Oui, par iOS" : "Non signalée comme telle")
+                            Text("IPv4, IPv6 et DNS décrivent le chemin réseau fourni par iOS, sans test de serveur ni mesure du débit. « Coûteuse » est une indication du système, pas le tarif de ton forfait.").font(.caption).foregroundStyle(.secondary)
+                        }
                         Divider()
                         networkInfo("Mode données réduites", value: store.device.reducedDataStatus, icon: "arrow.down.circle")
                         Text("Cet état concerne la connexion internet actuelle, Wi-Fi ou mobile. Il ne mesure pas la qualité du signal.").font(.footnote).foregroundStyle(.secondary)
                         Button("Actualiser les informations", systemImage: "arrow.clockwise") { store.device.refresh() }
                         if let date = store.device.lastUpdated { Text("Dernière lecture : \(date.formatted(date: .omitted, time: .standard))").font(.caption).foregroundStyle(.secondary) }
                         Text("iOS ne donne pas à Pylo le numéro de téléphone, l’IMEI, la cellule utilisée, les bandes actives ni les mesures RSRP/RSRQ/SINR. Le guide ci-dessous explique comment lire ces mesures dans Field Test.").font(.caption).foregroundStyle(.secondary)
+                    }
+                    InfoCard("Ta position et ton cap", subtitle: "Uniquement à ta demande, sans historique de déplacement.") {
+                        LabeledContent("Localisation", value: store.location.permission)
+                        if let precise = store.location.precisePosition { LabeledContent("Position précise", value: precise ? "Autorisée" : "Approximative") }
+                        Button("Lire ma position et mon cap", systemImage: "location.north.circle") { store.location.locate() }
+                        if let accuracy = store.location.accuracy { LabeledContent("Précision horizontale", value: "± \(Int(accuracy)) m") }
+                        if let altitude = store.location.altitude { LabeledContent("Altitude estimée", value: "\(Int(altitude)) m") }
+                        if let vertical = store.location.verticalAccuracy { LabeledContent("Précision verticale", value: "± \(Int(vertical)) m") }
+                        if let speed = store.location.speed { LabeledContent("Vitesse au dernier relevé", value: speed.formatted(.number.precision(.fractionLength(1))) + " km/h") }
+                        if let course = store.location.course { LabeledContent("Direction du déplacement", value: "\(Int(course))°") }
+                        if let heading = store.location.heading { LabeledContent("Cap de l’iPhone", value: "\(Int(heading))° · \(store.location.headingReference)") }
+                        if let accuracy = store.location.headingAccuracy { LabeledContent("Précision du cap", value: "± \(Int(accuracy))°") }
+                        if let date = store.location.measuredAt { LabeledContent("Position relevée à", value: date.formatted(date: .omitted, time: .standard)) }
+                        if !store.location.status.isEmpty { Text(store.location.status).font(.footnote).foregroundStyle(.secondary) }
+                        Text("L’altitude de l’iPhone n’est pas la hauteur d’un support ANFR. Le cap du téléphone et la direction du déplacement sont aussi deux choses différentes. Les valeurs incertaines ou indisponibles ne sont pas inventées.").font(.caption).foregroundStyle(.secondary)
                     }
                     InfoCard("1 · Ouvrir Field Test") {
                         Text("Dans Téléphone → Clavier, saisis ce code puis appuie sur Appeler.")

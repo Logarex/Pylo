@@ -139,20 +139,69 @@ import MapKit
 }
 @MainActor @Observable final class LocationService: NSObject, @preconcurrency CLLocationManagerDelegate {
     private let manager = CLLocationManager()
+    private var requested = false
     var coordinate: CLLocationCoordinate2D?
     var heading: Double?
+    var headingAccuracy: Double?
+    var headingReference = "nord vrai"
     var accuracy: Double?
+    var altitude: Double?
+    var verticalAccuracy: Double?
+    var speed: Double?
+    var course: Double?
+    var measuredAt: Date?
+    var precisePosition: Bool?
+    var permission = "Non demandée"
     var status = ""
-    override init() { super.init(); manager.delegate = self; manager.desiredAccuracy = kCLLocationAccuracyBest }
+    override init() {
+        super.init(); manager.delegate = self; manager.desiredAccuracy = kCLLocationAccuracyBest; manager.headingFilter = 5
+        updatePermission()
+    }
+    private func updatePermission() {
+        switch manager.authorizationStatus {
+        case .authorizedWhenInUse: permission = "Autorisée pendant l’utilisation"; precisePosition = manager.accuracyAuthorization == .fullAccuracy
+        case .authorizedAlways: permission = "Toujours autorisée par iOS"; precisePosition = manager.accuracyAuthorization == .fullAccuracy
+        case .denied: permission = "Refusée"; precisePosition = nil
+        case .restricted: permission = "Limitée par iOS"; precisePosition = nil
+        default: permission = "Non demandée"; precisePosition = nil
+        }
+    }
     func locate() {
+        requested = true; updatePermission()
         if manager.authorizationStatus == .notDetermined { manager.requestWhenInUseAuthorization() }
         else if manager.authorizationStatus == .denied || manager.authorizationStatus == .restricted { status = "Localisation refusée. Tu peux l’activer dans Réglages." }
-        else { manager.requestLocation(); if CLLocationManager.headingAvailable() { manager.startUpdatingHeading() } }
+        else { resumeIfNeeded() }
     }
+    func resumeIfNeeded() {
+        updatePermission()
+        guard requested, manager.authorizationStatus == .authorizedWhenInUse || manager.authorizationStatus == .authorizedAlways else { return }
+        manager.requestLocation()
+        if CLLocationManager.headingAvailable() { manager.startUpdatingHeading() }
+    }
+    func suspend() { manager.stopUpdatingHeading() }
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        if manager.authorizationStatus == .authorizedWhenInUse || manager.authorizationStatus == .authorizedAlways { manager.requestLocation(); if CLLocationManager.headingAvailable() { manager.startUpdatingHeading() } }
+        updatePermission()
+        if manager.authorizationStatus == .denied || manager.authorizationStatus == .restricted {
+            coordinate = nil; heading = nil; accuracy = nil; altitude = nil; speed = nil; course = nil; measuredAt = nil
+            suspend()
+        }
+        resumeIfNeeded()
     }
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) { coordinate = locations.last?.coordinate; accuracy = locations.last?.horizontalAccuracy; status = "" }
-    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) { heading = newHeading.trueHeading >= 0 ? newHeading.trueHeading : nil }
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let fix = locations.last, fix.horizontalAccuracy >= 0 else { status = "Position non fiable. Réessaie dans un endroit plus dégagé."; return }
+        coordinate = fix.coordinate; accuracy = fix.horizontalAccuracy; measuredAt = fix.timestamp
+        altitude = fix.verticalAccuracy >= 0 ? fix.altitude : nil
+        verticalAccuracy = fix.verticalAccuracy >= 0 ? fix.verticalAccuracy : nil
+        speed = fix.speed >= 0 ? fix.speed * 3.6 : nil
+        course = fix.course >= 0 && fix.speed >= 0.5 ? fix.course : nil
+        status = Date().timeIntervalSince(fix.timestamp) > 60 ? "Cette position est ancienne ; actualise-la pour une distance plus fiable." : ""
+        updatePermission()
+    }
+    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        guard newHeading.headingAccuracy >= 0 else { heading = nil; headingAccuracy = nil; return }
+        heading = newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading
+        headingReference = newHeading.trueHeading >= 0 ? "nord vrai" : "nord magnétique"
+        headingAccuracy = newHeading.headingAccuracy
+    }
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) { status = "Position indisponible pour le moment." }
 }

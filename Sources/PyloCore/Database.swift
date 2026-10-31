@@ -6,6 +6,7 @@ public enum DatabaseError: Error, LocalizedError {
 }
 public final class AntennaDatabase {
     private var db: OpaquePointer?
+    private var sourceSupports: Set<String> = []
     public init(url: URL, writable: Bool = false) throws {
         let flags = writable ? SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE : SQLITE_OPEN_READONLY
         guard sqlite3_open_v2(url.path, &db, flags, nil) == SQLITE_OK else { sqlite3_close(db); db = nil; throw DatabaseError.sqlite("Impossible d’ouvrir la base ANFR.") }
@@ -16,13 +17,32 @@ public final class AntennaDatabase {
     }
     private func quote(_ s: String) -> String { "'" + s.replacingOccurrences(of: "'", with: "''") + "'" }
     public func prepareImport() throws {
-        try execute("PRAGMA journal_mode=DELETE; CREATE TABLE stations(id TEXT PRIMARY KEY, operatorName TEXT, latitude REAL, longitude REAL, address TEXT, systems TEXT, status TEXT, updated TEXT, supportID TEXT, height TEXT); CREATE TABLE systems(stationID TEXT, name TEXT, generation TEXT, frequency TEXT, status TEXT, deployment TEXT, azimuths TEXT, PRIMARY KEY(stationID,name)); CREATE TABLE supports(stationID TEXT, supportID TEXT, height TEXT, latitude REAL, longitude REAL, azimuths TEXT, PRIMARY KEY(stationID,supportID)); CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT); BEGIN TRANSACTION;")
+        try execute("PRAGMA journal_mode=DELETE; CREATE TABLE stations(id TEXT PRIMARY KEY, operatorName TEXT, latitude REAL, longitude REAL, address TEXT, systems TEXT, status TEXT, updated TEXT, supportID TEXT, height TEXT, commune TEXT); CREATE TABLE systems(stationID TEXT, name TEXT, generation TEXT, frequency TEXT, status TEXT, deployment TEXT, azimuths TEXT, PRIMARY KEY(stationID,name)); CREATE TABLE supports(stationID TEXT, supportID TEXT, height TEXT, latitude REAL, longitude REAL, azimuths TEXT, PRIMARY KEY(stationID,supportID)); CREATE TABLE anfr_details(stationID TEXT,supportID TEXT,info TEXT,records TEXT,PRIMARY KEY(stationID,supportID)); CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT); BEGIN TRANSACTION;")
     }
-    public func insert(id: String, operatorName: String, lat: Double, lon: Double, address: String, system: String, status: String, updated: String, supportID: String = "", height: String = "", deployment: String = "", azimuths: String = "") throws {
-        try execute("INSERT INTO stations VALUES(\(quote(id)),\(quote(operatorName)),\(lat),\(lon),\(quote(address)),\(quote(system)),\(quote(status)),\(quote(updated)),\(quote(supportID)),\(quote(height))) ON CONFLICT(id) DO UPDATE SET systems=CASE WHEN instr(stations.systems, excluded.systems)=0 THEN stations.systems || ' · ' || excluded.systems ELSE stations.systems END, status=CASE WHEN instr(stations.status, excluded.status)=0 THEN stations.status || ' · ' || excluded.status ELSE stations.status END;")
+    public func insert(id: String, operatorName: String, lat: Double, lon: Double, address: String, system: String, status: String, updated: String, supportID: String = "", height: String = "", deployment: String = "", azimuths: String = "", commune: String = "") throws {
+        try execute("INSERT INTO stations VALUES(\(quote(id)),\(quote(operatorName)),\(lat),\(lon),\(quote(address)),\(quote(system)),\(quote(status)),\(quote(updated)),\(quote(supportID)),\(quote(height)),\(quote(commune))) ON CONFLICT(id) DO UPDATE SET systems=CASE WHEN instr(stations.systems, excluded.systems)=0 THEN stations.systems || ' · ' || excluded.systems ELSE stations.systems END, status=CASE WHEN instr(stations.status, excluded.status)=0 THEN stations.status || ' · ' || excluded.status ELSE stations.status END;")
         let frequency = system.split(separator: " ").last.map(String.init) ?? "Inconnue"
         try execute("INSERT INTO systems VALUES(\(quote(id)),\(quote(system)),\(quote(Radio.generation(system))),\(quote(frequency)),\(quote(status)),\(quote(deployment)),\(quote(azimuths))) ON CONFLICT(stationID,name) DO UPDATE SET azimuths=systems.azimuths || '|' || excluded.azimuths, status=CASE WHEN instr(systems.status,excluded.status)=0 THEN systems.status || ' · ' || excluded.status ELSE systems.status END, deployment=CASE WHEN systems.deployment='' THEN excluded.deployment WHEN excluded.deployment='' THEN systems.deployment ELSE min(systems.deployment,excluded.deployment) END;")
         try execute("INSERT INTO supports VALUES(\(quote(id)),\(quote(supportID)),\(quote(height)),\(lat),\(lon),\(quote(azimuths))) ON CONFLICT(stationID,supportID) DO UPDATE SET azimuths=CASE WHEN instr(supports.azimuths,excluded.azimuths)=0 THEN supports.azimuths || '|' || excluded.azimuths ELSE supports.azimuths END;")
+    }
+    public func appendSource(_ row: [String:String], references: ANFRReferences) throws {
+        let station = row["sta_nm_anfr"] ?? "", support = row["sup_id"] ?? ""
+        let record = ANFRSourceRecord(id: row["id"] ?? "", system: row["emr_lb_systeme"] ?? "", generation: row["generation"] ?? "", date: row["emr_dt"] ?? "", status: row["statut"] ?? "", azimuths: row["list_azimut"] ?? "")
+        let json = String(decoding: try JSONEncoder().encode(record), as: UTF8.self)
+        if sourceSupports.insert(station + ":" + support).inserted {
+            let fields = row.filter { !["id","emr_lb_systeme","generation","emr_dt","statut","list_azimut"].contains($0.key) }
+            let info = ANFRSupportDetails(fields: fields, nature: references.natures[row["nat_id"] ?? ""] ?? "", owner: references.owners[row["tpo_id"] ?? ""] ?? "", commune: references.communes[row["com_cd_insee"] ?? ""] ?? "", referenceDate: references.date)
+            let encoded = String(decoding: try JSONEncoder().encode(info), as: UTF8.self)
+            try execute("INSERT INTO anfr_details VALUES(\(quote(station)),\(quote(support)),\(quote(encoded)),\(quote("["+json+"]")))")
+        } else {
+            try execute("UPDATE anfr_details SET records=substr(records,1,length(records)-1) || \(quote(","+json+"]")) WHERE stationID=\(quote(station)) AND supportID=\(quote(support))")
+        }
+    }
+    public func sourceDetails(for id: String) throws -> [ANFRSourceSupport] {
+        guard !(try rows("SELECT name FROM sqlite_master WHERE type='table' AND name='anfr_details'")).isEmpty else { return [] }
+        return try rows("SELECT supportID,info,records FROM anfr_details WHERE stationID=\(quote(id)) ORDER BY supportID").map {
+            ANFRSourceSupport(id: $0[0], details: try JSONDecoder().decode(ANFRSupportDetails.self, from: Data($0[1].utf8)), records: try JSONDecoder().decode([ANFRSourceRecord].self,from: Data($0[2].utf8)))
+        }
     }
     public func finishImport() throws { try execute("COMMIT; CREATE INDEX coordinates ON stations(latitude,longitude); CREATE INDEX system_station ON systems(stationID); PRAGMA user_version=2; VACUUM;") }
     public func stations(south: Double = -90, north: Double = 90, west: Double = -180, east: Double = 180, generation: String = "", operatorName: String = "", limit: Int = 600) throws -> [Station] {
@@ -35,7 +55,7 @@ public final class AntennaDatabase {
         while sqlite3_step(stmt) == SQLITE_ROW {
             let systems = string(5)
             if !generation.isEmpty && !systems.components(separatedBy: " · ").contains(where: { Radio.generation($0) == generation }) { continue }
-            result.append(Station(id: string(0), operatorName: string(1), latitude: sqlite3_column_double(stmt,2), longitude: sqlite3_column_double(stmt,3), address: string(4), systems: systems, status: string(6), updated: string(7), supportID: sqlite3_column_count(stmt) > 8 ? string(8) : "", height: sqlite3_column_count(stmt) > 9 ? string(9) : ""))
+            result.append(Station(id: string(0), operatorName: string(1), latitude: sqlite3_column_double(stmt,2), longitude: sqlite3_column_double(stmt,3), address: string(4), systems: systems, status: string(6), updated: string(7), supportID: sqlite3_column_count(stmt) > 8 ? string(8) : "", height: sqlite3_column_count(stmt) > 9 ? string(9) : "", commune: sqlite3_column_count(stmt) > 10 ? string(10) : ""))
         }
         return result
     }
@@ -45,8 +65,8 @@ public final class AntennaDatabase {
         var result: [Station] = []
         for start in stride(from: 0, to: values.count, by: 500) {
             let chunk = values[start..<min(start+500, values.count)].map(quote).joined(separator: ",")
-            let found = try rows("SELECT id,operatorName,latitude,longitude,address,systems,status,updated,supportID,height FROM stations WHERE id IN (\(chunk))")
-            result += found.map { Station(id: $0[0], operatorName: $0[1], latitude: Double($0[2]) ?? 0, longitude: Double($0[3]) ?? 0, address: $0[4], systems: $0[5], status: $0[6], updated: $0[7], supportID: $0[8], height: $0[9]) }
+            let found = try rows("SELECT * FROM stations WHERE id IN (\(chunk))")
+            result += found.map { Station(id: $0[0], operatorName: $0[1], latitude: Double($0[2]) ?? 0, longitude: Double($0[3]) ?? 0, address: $0[4], systems: $0[5], status: $0[6], updated: $0[7], supportID: $0[8], height: $0[9], commune: $0.count > 10 ? $0[10] : "") }
         }
         return result.sorted { a,b in a.operatorName == b.operatorName ? a.id < b.id : a.operatorName < b.operatorName }
     }
@@ -65,19 +85,19 @@ public final class AntennaDatabase {
     }
     public func systems(for id: String) throws -> [RadioSystem] {
         try rows("SELECT name,status,deployment,azimuths FROM systems WHERE stationID=\(quote(id)) ORDER BY generation,name").map {
-            RadioSystem(name: $0[0], status: $0[1], date: $0[2], azimuths: Array(Set($0[3].split(separator: "|").compactMap { Double($0) }.filter { (0..<360).contains($0) })).sorted())
+            RadioSystem(name: $0[0], status: $0[1], date: $0[2], azimuths: ANFRValues.azimuths($0[3]))
         }
     }
     public func supports(for id: String) throws -> [AntennaSupport] {
         try rows("SELECT supportID,height,latitude,longitude,azimuths FROM supports WHERE stationID=\(quote(id)) ORDER BY supportID").map {
-            AntennaSupport(id: $0[0], height: $0[1], latitude: Double($0[2]) ?? 0, longitude: Double($0[3]) ?? 0, azimuths: Array(Set($0[4].split(separator: "|").compactMap { Double($0) }.filter { (0..<360).contains($0) })).sorted())
+            AntennaSupport(id: $0[0], height: $0[1], latitude: Double($0[2]) ?? 0, longitude: Double($0[3]) ?? 0, azimuths: ANFRValues.azimuths($0[4]))
         }
     }
     public func primaryDirections(for stationIDs: [String]) throws -> [String: [Double]] {
         guard !stationIDs.isEmpty else { return [:] }
         let ids = stationIDs.prefix(600).map(quote).joined(separator: ",")
         return Dictionary(uniqueKeysWithValues: try rows("SELECT p.stationID,p.azimuths FROM supports p JOIN stations s ON p.stationID=s.id AND p.supportID=s.supportID WHERE s.id IN (\(ids))").map { row in
-            (row[0], Array(Set(row[1].split(separator: "|").compactMap { Double($0) }.filter { $0.isFinite && (0..<360).contains($0) })).sorted())
+            (row[0], ANFRValues.azimuths(row[1]))
         })
     }
     public func sourceDate() throws -> String {

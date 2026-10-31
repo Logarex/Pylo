@@ -7,6 +7,7 @@ struct StationDetail: View {
     @State private var systems: [RadioSystem] = []
     @State private var supports: [AntennaSupport] = []
     @State private var error: String?
+    @State private var sourceDetails: [ANFRSourceSupport] = []
     private var color: Color { Palette.operatorColor(station.operatorName) }
     private var distance: Double? {
         guard let user = store.location.coordinate else { return nil }
@@ -35,7 +36,7 @@ struct StationDetail: View {
                                             Spacer()
                                             Text(system.status).font(.caption.weight(.medium)).foregroundStyle(system.status.contains("Projet") ? Color.orange : Color.teal).multilineTextAlignment(.trailing)
                                         }
-                                        if !system.date.isEmpty { Text("Date système ANFR : \(formattedDate(system.date))").font(.caption).foregroundStyle(.secondary) }
+                                        if !system.date.isEmpty { Text("Première date ANFR renseignée : \(formattedDate(system.date))").font(.caption).foregroundStyle(.secondary) }
                                         if !system.azimuths.isEmpty { Text("Directions : \(system.azimuths.map { "\(Int($0))°" }.joined(separator: " · "))").font(.caption).foregroundStyle(.secondary) }
                                     }.padding(12).background(Palette.generation(g).opacity(0.06), in: .rect(cornerRadius: 14))
                                 }
@@ -45,11 +46,11 @@ struct StationDetail: View {
                     }
                     InfoCard("Dans quelle direction ?", subtitle: "Les axes viennent des azimuts déclarés par l’ANFR.") {
                         HStack(spacing: 22) {
-                            CompassDiagram(azimuths: azimuths, bearing: bearing, heading: store.location.heading, color: color).frame(width: 130, height: 150)
+                            CompassDiagram(azimuths: azimuths, bearing: bearing, heading: store.location.headingReference == "nord vrai" ? store.location.heading : nil, color: color).frame(width: 130, height: 150)
                             VStack(alignment: .leading, spacing: 9) {
                                 Text(azimuths.isEmpty ? "Orientation non renseignée" : azimuths.map { "\(Int($0))°" }.joined(separator: " · ")).font(.headline)
                                 if let bearing { Text("Depuis toi : cap \(Int(bearing))° vers la station.").font(.subheadline) }
-                                if let heading = store.location.heading { Text("Ton iPhone pointe à \(Int(heading))° du nord vrai.").font(.caption).foregroundStyle(.secondary) }
+                                if let heading = store.location.heading { Text("Ton iPhone pointe à \(Int(heading))° du \(store.location.headingReference).").font(.caption).foregroundStyle(.secondary) }
                             }
                         }
                         Text("0° = nord, 90° = est. Les traits montrent des directions, pas des zones de couverture. L’ANFR ne fournit ici ni l’ouverture du faisceau ni son inclinaison. Plusieurs bandes peuvent avoir des directions différentes.").font(.footnote).foregroundStyle(.secondary)
@@ -83,13 +84,46 @@ struct StationDetail: View {
                         LabeledContent("Coordonnées", value: String(format: "%.5f, %.5f", station.latitude, station.longitude))
                         Text("Une station regroupe des équipements d’un opérateur et peut être rattachée à plusieurs supports dans la source. Plusieurs stations peuvent partager un support. La hauteur du support n’est pas forcément celle des panneaux. Si plusieurs supports sont présents, le repère de carte et la distance utilisent le premier enregistré ; les directions ci-dessus regroupent les azimuts déclarés.").font(.footnote).foregroundStyle(.secondary)
                     }
+                    if !sourceDetails.isEmpty {
+                        InfoCard("Ce que déclare l’ANFR", subtitle: "Les informations d’origine restent consultables, même si l’adresse est rendue plus lisible.") {
+                            ForEach(sourceDetails) { source in
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Support \(source.id)").font(.headline)
+                                    Text(source.details.readableAddress).font(.subheadline)
+                                    LabeledContent("Type de support", value: source.details.nature.isEmpty ? "Non référencé · code \(source.details.fields["nat_id"] ?? "—")" : source.details.nature)
+                                    LabeledContent("Propriétaire déclaré", value: source.details.owner.isEmpty ? ((source.details.fields["tpo_id"] ?? "").isEmpty ? "Non renseigné" : "Code non référencé : " + (source.details.fields["tpo_id"] ?? "")) : source.details.owner)
+                                    Text("Le propriétaire du support peut être différent de l’opérateur mobile.").font(.caption).foregroundStyle(.secondary)
+                                    LabeledContent("Commune INSEE", value: source.details.fields["com_cd_insee"] ?? "—")
+                                    LabeledContent("Département · code ANFR", value: source.details.fields["sta_nm_dpt"] ?? "—")
+                                    DisclosureGroup("Systèmes sur ce support") {
+                                        ForEach(source.records) { record in
+                                            VStack(alignment: .leading, spacing: 5) {
+                                                Text(record.system).font(.subheadline.bold())
+                                                Text(record.status).font(.caption)
+                                                Text(record.date.isEmpty ? "Date non renseignée" : "Date déclarée : \(formattedDate(record.date))").font(.caption)
+                                                let axes = ANFRValues.azimuths(record.azimuths)
+                                                Text(axes.isEmpty ? "Orientation non renseignée" : "Directions : " + axes.map { "\(Int($0))°" }.joined(separator: " · ")).font(.caption)
+                                            }.padding(.vertical, 5)
+                                        }
+                                    }
+                                    DisclosureGroup("Champs bruts de la source") {
+                                        ForEach(source.details.fields.keys.sorted(), id: \.self) { key in
+                                            VStack(alignment: .leading, spacing: 3) { Text(key).font(.caption.monospaced()).foregroundStyle(.secondary); Text(source.details.fields[key].flatMap { $0.isEmpty ? nil : $0 } ?? "Non renseigné").font(.footnote).textSelection(.enabled) }.padding(.vertical,3)
+                                        }
+                                        ShareLink(item: source.exportJSON) { Label("Exporter les lignes ANFR originales", systemImage: "square.and.arrow.up") }
+                                        Text("Les identifiants de lignes sont propres à la publication source ; ce ne sont pas des identifiants radio. Les libellés de type, de propriétaire et de commune viennent des référentiels officiels consultés le \(formattedDate(source.details.referenceDate)).").font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        }
+                    }
                     InfoCard("À garder sous la main") {
                         Button { store.toggle(station) } label: { Label(store.favorites.contains(station.id) ? "Retirer des favoris" : "Garder en favori", systemImage: store.favorites.contains(station.id) ? "star.fill" : "star") }
                         Button("Itinéraire dans Plans", systemImage: "arrow.triangle.turn.up.right.diamond") {
                             let item = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: station.latitude, longitude: station.longitude)))
                             item.name = station.operatorName; item.openInMaps()
                         }
-                        ShareLink(item: "Station ANFR \(station.id) · \(station.operatorName)\n\(station.address)\n\(station.systems)\nhttps://maps.apple.com/?ll=\(station.latitude),\(station.longitude)") { Label("Partager cette station", systemImage: "square.and.arrow.up") }
+                        ShareLink(item: "Station ANFR \(station.id) · \(station.operatorName)\n\(station.readableAddress)\n\(station.systems)\nhttps://maps.apple.com/?ll=\(station.latitude),\(station.longitude)") { Label("Partager cette station", systemImage: "square.and.arrow.up") }
                     }
                 }.padding(16)
             }.background(Color(.systemGroupedBackground)).navigationTitle("La station").navigationBarTitleDisplayMode(.inline)
@@ -104,13 +138,13 @@ struct StationDetail: View {
                 Text("DONNÉES ANFR").font(.caption2.bold()).tracking(1.5).foregroundStyle(.secondary)
             }
             Text(operatorDisplayName(station.operatorName)).font(.largeTitle.bold())
-            Text(station.address).font(.subheadline).foregroundStyle(.secondary)
+            Text(station.readableAddress).font(.subheadline).foregroundStyle(.secondary)
             HStack { ForEach(["2G","3G","4G","5G"].filter { g in systems.contains { $0.generation == g } }, id: \.self) { g in Text(g).font(.subheadline.bold()).padding(.horizontal,12).padding(.vertical,7).background(Palette.generation(g).opacity(0.12), in: Capsule()).foregroundStyle(Palette.generation(g)) } }
             Label("Station déclarée · connexion non confirmée", systemImage: "info.circle").font(.caption).foregroundStyle(.secondary)
         }.frame(maxWidth: .infinity, alignment: .leading).padding(24).background(color.opacity(0.07), in: .rect(cornerRadius: 28))
     }
     private func loadSystems() {
-        do { if let url = store.databaseURL { let db = try AntennaDatabase(url: url); systems = try db.systems(for: station.id); supports = try db.supports(for: station.id) } }
+        do { if let url = store.databaseURL { let db = try AntennaDatabase(url: url); systems = try db.systems(for: station.id); supports = try db.supports(for: station.id); sourceDetails = try db.sourceDetails(for: station.id) } }
         catch { self.error = error.localizedDescription }
     }
     private func technology(_ generation: String) -> String { switch generation { case "2G": "GSM"; case "3G": "UMTS"; case "4G": "LTE"; default: "5G NR" } }

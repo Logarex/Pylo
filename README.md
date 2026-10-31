@@ -36,6 +36,8 @@ La carte utilise les regroupements natifs de MapKit. Elle affiche au maximum **6
 
 ### Comprendre chaque station
 
+Les adresses développent les abréviations de voie reconnues (`r` → `Rue`, `bd` → `Boulevard`, etc.) et ajoutent le nom officiel de la commune lorsqu’il est disponible. Le texte ANFR d’origine reste consultable.
+
 Les fiches séparent les informations au lieu de mélanger toutes les bandes dans une seule ligne :
 
 | Information | Ce que Pylo affiche |
@@ -43,7 +45,7 @@ Les fiches séparent les informations au lieu de mélanger toutes les bandes dan
 | Réseaux et bandes | GSM, UMTS, LTE, NR et leurs bandes en MHz, regroupés par génération |
 | État | L’état déclaré de chaque système : projet approuvé, en service, techniquement opérationnel… |
 | Dates | La date du système dans la source et la date de publication des données |
-| Supports | Les identifiants des supports physiques, leur hauteur renseignée et leurs coordonnées |
+| Supports | Les identifiants, le type de structure, le propriétaire déclaré, la hauteur et les coordonnées |
 | Orientation | Les azimuts ANFR et un schéma avec les directions déclarées |
 | Depuis ta position | La distance à vol d’oiseau, le cap vers la station et le cap de l’iPhone lorsque disponible |
 
@@ -148,6 +150,10 @@ swift run -c release anfr-import output/antennas.sqlite /chemin/observatoire.csv
 Les fichiers du cœur sont partagés entre l’app, les tests et l’importeur. SQLite, zlib et la décompression ZIP sur Mac reposent sur les outils du système. Pas de serveur Pylo à maintenir.
 
 Les recherches de carte s’exécutent hors du fil principal après la fin du mouvement. Les repères sont réutilisés, les images de groupes sont mises en cache et les orientations utilisent une seule couche de dessin bornée. La fluidité et les comportements radio restent à vérifier sur les différents modèles d’iPhone avant une distribution TestFlight ou App Store.
+
+## Audit et qualité des données
+
+Les 23 colonnes du CSV mobile sont conservées et expliquées, avec export JSON des lignes d’origine. Les azimuts `360°` sont ramenés à `0°`, `ND` reste inconnu et les dates absentes ne sont pas inventées. Un rapport `quality.json` accompagne les nouvelles publications. L’[audit ANFR et iPhone](docs/ANFR-IPHONE-AUDIT.md) décrit chaque champ, les vérifications effectuées et les limites des API.
 
 ## Vie privée, sources et liens
 
