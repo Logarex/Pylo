@@ -6,5 +6,5 @@ La licence du code ne remplace pas celle des éléments suivants :
 
 - **Données ANFR** : réutilisées sous [Licence Ouverte 2.0](https://www.etalab.gouv.fr/licence-ouverte-open-licence/), avec attribution ANFR / data.gouv.fr. Les métadonnées de source sont conservées dans `docs/anfr-source.json`.
 - **Noms des communes et arrondissements municipaux** : issus de l’API géographique de l’État (https://geo.api.gouv.fr/), avec source et date conservées dans le référentiel.
-- **Logos et identité visuelle Pylo** : restent la propriété de leur auteur ; ils ne sont pas placés sous GPL par cette modification. Leur préparation est documentée dans `docs/ASSETS.md`.
+- **Logos et identité visuelle Pylo** : restent la propriété de leur auteur ; ils ne sont pas placés sous GPL par cette modification.
 - **Composants et services système** : Apple SDK, MapKit, SQLite et zlib conservent leurs conditions et licences respectives.
