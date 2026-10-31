@@ -18,10 +18,6 @@ struct ContentView: View {
     }
 }
 extension View {
-    @ViewBuilder func clearTopEdge() -> some View {
-        if #available(iOS 26, *) { self.scrollEdgeEffectHidden(true, for: .top) }
-        else { self }
-    }
     @ViewBuilder func pyloGlass() -> some View {
         if #available(iOS 26, *) { self.glassEffect(.regular, in: .rect(cornerRadius: 24)) }
         else { self.background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24)) }
@@ -69,14 +65,13 @@ struct ExplorerView: View {
                 guard !stations.isEmpty else { return }
                 selected = StationCluster(id: UUID().uuidString, stations: stations)
             })
-            .clearTopEdge()
             .safeAreaInset(edge: .top) {
                 VStack(spacing: 10) {
                     HStack {
                         Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                         TextField("Une ville, une adresse…", text: $search).submitLabel(.search).onSubmit { Task { await find() } }
                         Button { store.location.locate() } label: { Image(systemName: "location.fill") }.accessibilityLabel("Autour de moi")
-                    }.padding(15).background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 22))
+                    }.padding(15).pyloGlass()
                     HStack {
                         Picker("Réseau", selection: $store.generation) { Text("Tous").tag(""); ForEach(["2G","3G","4G","5G"], id: \.self) { Text($0).tag($0) } }.pickerStyle(.segmented)
                         Menu {
@@ -84,7 +79,7 @@ struct ExplorerView: View {
                                 Text("Tous les opérateurs").tag("")
                                 ForEach(["ORANGE","SFR","BOUYGUES TELECOM","FREE MOBILE","DAUPHIN TELECOM","DIGICEL","FREE CARAIBES","GLOBALTEL","Gouv Nelle Calédonie (OPT)","MAORE MOBILE","ONATI","OUTREMER TELECOM","PMT-VODAFONE","SPM TELECOM","SPT","SRR","TELCO OI","UTS Caraibes","VITI SAS","ZEOP"], id: \.self) { Text(operatorDisplayName($0)).tag($0) }
                             }
-                        } label: { Image(systemName: "line.3.horizontal.decrease").padding(12).background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 22)) }.accessibilityLabel("Filtrer les opérateurs")
+                        } label: { Image(systemName: "line.3.horizontal.decrease").padding(12).pyloGlass() }.accessibilityLabel("Filtrer les opérateurs")
                     }
                 }.padding(.horizontal).padding(.top, 6)
             }
@@ -112,7 +107,6 @@ struct ExplorerView: View {
                 }.padding(18).pyloGlass().padding()
             }
             .navigationTitle("Pylo").navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
             .sheet(item: $selected) { cluster in
                 if cluster.stations.count == 1, let station = cluster.stations.first {
                     StationDetail(station: station).presentationDetents([.medium,.large])
