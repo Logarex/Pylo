@@ -10,10 +10,14 @@
 		1DADCDE6AD0DE377C35B874E /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB1D133D1262049FE8E47634 /* AppStore.swift */; };
 		26E4F81135D3B6D019504968 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 62B9CD098037555C1D24D93A /* Foundation.framework */; };
 		2B0033EFF45134F84BBEF23C /* InfoViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55B91481CCF7BA8EA9F36C56 /* InfoViews.swift */; };
+		3A998AD7A9E5B9E64D06A499 /* StationDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AF923465F5183558130D6A4 /* StationDetail.swift */; };
+		45765DA3952E5736D9D5D493 /* NativeAntennaMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EEFF87B06CA0FADB0ECB00 /* NativeAntennaMap.swift */; };
+		51A0656AB82A5618A05C297E /* Design.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE33EE7963FE7BA04CDD10D1 /* Design.swift */; };
 		51E92282E1E4F78A989AF94C /* FieldTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1DE52F6CF29D2EFC548DE02 /* FieldTestView.swift */; };
+		802ECAD3D0A6805A82C1A023 /* StatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DED69441C4558315C87436C1 /* StatisticsView.swift */; };
 		819B9C293A92106DC0C516E0 /* Station.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD2A9F7F89564429B1AD9E1 /* Station.swift */; };
 		8964BD89427223C70D5C6CFC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A3B622AB53B86DF25ABA0883 /* Assets.xcassets */; };
-		A6B1F36DEAED51E93FE2F1C4 /* antennas.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = 09CA93B85B503D8F7F741093 /* antennas.sqlite */; };
+		A6B1F36DEAED51E93FE2F1C4 /* antennas.sqlite.gz in Resources */ = {isa = PBXBuildFile; fileRef = 09CA93B85B503D8F7F741093 /* antennas.sqlite.gz */; };
 		B05ED0853AF69FC4EEB504F9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 949F88396B5D827603B7D404 /* ContentView.swift */; };
 		B6A6D287F3B94C7C7916F819 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33DCEE46050D9135A7AEE795 /* Database.swift */; };
 		F24FD997A5AEBED6B1D115D3 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 940991410D1F8D75E73A96F1 /* PrivacyInfo.xcprivacy */; };
@@ -21,17 +25,21 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		09CA93B85B503D8F7F741093 /* antennas.sqlite */ = {isa = PBXFileReference; includeInIndex = 1; name = antennas.sqlite; path = Resources/antennas.sqlite; sourceTree = "<group>"; };
+		03EEFF87B06CA0FADB0ECB00 /* NativeAntennaMap.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NativeAntennaMap.swift; sourceTree = "<group>"; };
+		09CA93B85B503D8F7F741093 /* antennas.sqlite.gz */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; name = antennas.sqlite.gz; path = Resources/antennas.sqlite.gz; sourceTree = "<group>"; };
 		1CD2A9F7F89564429B1AD9E1 /* Station.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Station.swift; sourceTree = "<group>"; };
 		33DCEE46050D9135A7AEE795 /* Database.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Database.swift; sourceTree = "<group>"; };
 		46819116977D0D9C6FB0F652 /* Pylo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pylo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4AF923465F5183558130D6A4 /* StationDetail.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StationDetail.swift; sourceTree = "<group>"; };
 		55B91481CCF7BA8EA9F36C56 /* InfoViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InfoViews.swift; sourceTree = "<group>"; };
 		62B9CD098037555C1D24D93A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		8445658264FDC0DB16FF9EC0 /* PyloApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PyloApp.swift; sourceTree = "<group>"; };
-		940991410D1F8D75E73A96F1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		940991410D1F8D75E73A96F1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		949F88396B5D827603B7D404 /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A3B622AB53B86DF25ABA0883 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B1DE52F6CF29D2EFC548DE02 /* FieldTestView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FieldTestView.swift; sourceTree = "<group>"; };
+		DE33EE7963FE7BA04CDD10D1 /* Design.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Design.swift; sourceTree = "<group>"; };
+		DED69441C4558315C87436C1 /* StatisticsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatisticsView.swift; sourceTree = "<group>"; };
 		EB1D133D1262049FE8E47634 /* AppStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -100,10 +108,13 @@
 				55B91481CCF7BA8EA9F36C56 /* InfoViews.swift */,
 				8445658264FDC0DB16FF9EC0 /* PyloApp.swift */,
 				A3B622AB53B86DF25ABA0883 /* Assets.xcassets */,
-				09CA93B85B503D8F7F741093 /* antennas.sqlite */,
+				09CA93B85B503D8F7F741093 /* antennas.sqlite.gz */,
 				940991410D1F8D75E73A96F1 /* PrivacyInfo.xcprivacy */,
+				DE33EE7963FE7BA04CDD10D1 /* Design.swift */,
+				4AF923465F5183558130D6A4 /* StationDetail.swift */,
+				DED69441C4558315C87436C1 /* StatisticsView.swift */,
+				03EEFF87B06CA0FADB0ECB00 /* NativeAntennaMap.swift */,
 			);
-			name = App;
 			path = App;
 			sourceTree = "<group>";
 		};
@@ -135,6 +146,12 @@
 			attributes = {
 				LastSwiftUpdateCheck = 1600;
 				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					EA5EDF344445A2CA7CA7D01E = {
+						DevelopmentTeam = QAJG497BKZ;
+						ProvisioningStyle = Automatic;
+					};
+				};
 			};
 			buildConfigurationList = 8ECB6FB0A514B722DF7E22E9 /* Build configuration list for PBXProject "Pylo" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -145,8 +162,6 @@
 				Base,
 			);
 			mainGroup = 1DEACFE4EAF78F418A971D52;
-			minimizedProjectReferenceProxies = 0;
-			preferredProjectObjectVersion = 77;
 			productRefGroup = 55BA73E8CCAAA1CBF8EBED3D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -162,7 +177,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8964BD89427223C70D5C6CFC /* Assets.xcassets in Resources */,
-				A6B1F36DEAED51E93FE2F1C4 /* antennas.sqlite in Resources */,
+				A6B1F36DEAED51E93FE2F1C4 /* antennas.sqlite.gz in Resources */,
 				F24FD997A5AEBED6B1D115D3 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -181,6 +196,10 @@
 				F5A9C727FB35AE14B99B7228 /* PyloApp.swift in Sources */,
 				B6A6D287F3B94C7C7916F819 /* Database.swift in Sources */,
 				819B9C293A92106DC0C516E0 /* Station.swift in Sources */,
+				51A0656AB82A5618A05C297E /* Design.swift in Sources */,
+				3A998AD7A9E5B9E64D06A499 /* StationDetail.swift in Sources */,
+				802ECAD3D0A6805A82C1A023 /* StatisticsView.swift in Sources */,
+				45765DA3952E5736D9D5D493 /* NativeAntennaMap.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -255,15 +274,17 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = QAJG497BKZ;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDevelopmentRegion = fr;
 				INFOPLIST_KEY_CFBundleDisplayName = Pylo;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Ta position sert à afficher les antennes autour de toi.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Pylo utilise votre position pendant l’utilisation pour afficher les antennes à proximité et calculer leur distance et leur direction par rapport à vous. Votre position n’est pas conservée par Pylo.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = fr.logarex.pylo;
 				SDKROOT = iphoneos;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Sources/CSQLite";
@@ -321,8 +342,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
@@ -334,15 +354,17 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = QAJG497BKZ;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDevelopmentRegion = fr;
 				INFOPLIST_KEY_CFBundleDisplayName = Pylo;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Ta position sert à afficher les antennes autour de toi.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Pylo utilise votre position pendant l’utilisation pour afficher les antennes à proximité et calculer leur distance et leur direction par rapport à vous. Votre position n’est pas conservée par Pylo.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = fr.logarex.pylo;
 				SDKROOT = iphoneos;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Sources/CSQLite";

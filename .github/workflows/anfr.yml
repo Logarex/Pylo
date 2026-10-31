@@ -20,8 +20,15 @@ jobs:
       - name: Vérifier le cœur Swift
         run: swift test
       - name: Récupérer et valider les données officielles
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p output
+          mkdir -p output previous
+          PREVIOUS_TAG="$(gh release list --limit 1 --json tagName --jq '.[0].tagName // empty')"
+          if [ -n "$PREVIOUS_TAG" ]; then
+            gh release download "$PREVIOUS_TAG" --pattern antennas.sqlite --dir previous
+            export PYLO_PREVIOUS_DATABASE="$PWD/previous/antennas.sqlite"
+          fi
           swift run -c release anfr-import output/antennas.sqlite
           shasum -a 256 output/antennas.sqlite > output/SHA256SUMS
       - uses: actions/upload-artifact@v4
