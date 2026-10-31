@@ -65,6 +65,7 @@ struct ExplorerView: View {
                 guard !stations.isEmpty else { return }
                 selected = StationCluster(id: UUID().uuidString, stations: stations)
             })
+            .ignoresSafeArea(.container, edges: .all)
             .safeAreaInset(edge: .top) {
                 VStack(spacing: 10) {
                     HStack {
