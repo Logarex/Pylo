@@ -17,3 +17,7 @@ Edit target: supplied Pylo logo sheet. Extract ONLY the RIGHT dark-mode square a
 ## Icônes à fond perdu
 
 Les logos ont ensuite été repris avec imagegen, en mode édition, pour enlever la grande marge et la bordure extérieure. Consigne : conserver le pylône et les trois ondes de chaque côté ; fond clair ou sombre jusqu’aux quatre coins du carré ; aucun cadre, aucune bordure, aucun carré arrondi ni marge extérieure ; symbole centré occupant environ 78 % du carré ; pas de texte ni d’ajout. Les fichiers de projet sont `App/Assets.xcassets/Brand.imageset/pylo-light.png` et `pylo-dark.png`, également déclinés en 1024 × 1024 dans AppIcon. Le masque arrondi est laissé à iOS.
+
+## Logos dans l’interface et le README
+
+Le logo de la page « Le projet » utilise un masque SwiftUI arrondi (22 points pour 100 points). Le README utilise les variantes SVG autonomes `docs/images/logo-light.svg` et `logo-dark.svg`, qui embarquent les images originales avec un masque de même proportion. Cela garde les symboles et couleurs intacts, avec des coins transparents. Les fichiers AppIcon restent inchangés.

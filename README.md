@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="App/Assets.xcassets/Brand.imageset/pylo-dark.png">
-    <img src="App/Assets.xcassets/Brand.imageset/pylo-light.png" alt="Logo de Pylo" width="100" height="100">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-dark.svg">
+    <img src="docs/images/logo-light.svg" alt="Logo de Pylo" width="100" height="100">
   </picture>
 </p>
 
