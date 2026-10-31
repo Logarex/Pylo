@@ -3,7 +3,7 @@ import CoreTelephony
 import Network
 
 enum Palette {
-    static let accent = Color(red: 0.48, green: 0.28, blue: 0.49)
+    static let accent = Color("AccentColor")
     static func operatorColor(_ name: String) -> Color {
         if name.contains("ORANGE") { return .orange }
         if name.contains("FREE") { return Color(red: 0.16, green: 0.17, blue: 0.20) }

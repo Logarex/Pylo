@@ -17,7 +17,7 @@ Pylo est écrite en Swift, avec une interface native, des données ANFR consulta
 ## Un aperçu de l’app
 
 <p align="center">
-  <img src="docs/pylo-iphone.png" alt="Pylo : carte des stations ANFR, couleurs par opérateur, filtres 2G à 5G et commandes de zoom" width="310">
+  <img src="docs/pylo-iphone.png" alt="Pylo : interface neutre, suggestions d’adresses, carte ANFR et couleurs par opérateur" width="310">
 </p>
 
 *Capture de la version actuelle dans le simulateur iPhone. Les stations affichées proviennent de la base ANFR ; ce ne sont pas des données de démonstration.*
@@ -26,7 +26,7 @@ Pylo est écrite en Swift, avec une interface native, des données ANFR consulta
 
 ### Explorer les antennes
 
-- Naviguer sur une carte Apple Plans, chercher une ville ou une adresse et se placer autour de sa position.
+- Naviguer sur une carte Apple Plans, chercher une ville ou une adresse avec des suggestions pendant la saisie, puis se placer autour de sa position.
 - Filtrer les stations par **2G, 3G, 4G, 5G** et par opérateur, y compris les opérateurs d’outre-mer présents dans la source.
 - Repérer les opérateurs grâce à leurs couleurs : **Orange en orange, Free en anthracite, SFR en rouge et Bouygues Telecom en turquoise**. Les regroupements mélangent les couleurs des opérateurs présents.
 - Zoomer avec les gestes habituels ou les boutons **+ / −**.
@@ -57,7 +57,7 @@ Les flèches d’orientation sont attachées à la tête des repères et gardent
 
 ### Lire Field Test, simplement
 
-Le guide remplace le carnet de relevés manuels. Il explique comment ouvrir le menu de l’iPhone, quoi regarder en premier et comment interpréter les champs courants :
+Le guide remplace le carnet de relevés manuels. Il explique comment ouvrir le menu de l’iPhone avec le code `*3001#12345#*`, quoi regarder en premier et comment interpréter les champs courants :
 
 - **Puissance** : RSRP, SS-RSRP, CSI-RSRP, RSSI, RSCP.
 - **Qualité et bruit** : RSRQ, SINR, SNR, Ec/No et Ec/Io, avec des repères indicatifs.
@@ -114,7 +114,7 @@ Il faut **Xcode 26 ou plus récent** et **iOS 18 minimum**.
 2. Sélectionne le schéma **Pylo**, puis un simulateur iPhone.
 3. Pour ton iPhone, choisis ton équipe dans **Signing & Capabilities** et adapte l’identifiant d’application si nécessaire.
 
-Aucun paquet tiers à installer. L’app suit les thèmes clair/sombre et utilise Liquid Glass sur iOS 26+, avec des matériaux système sur les versions antérieures.
+Aucun paquet tiers à installer. L’interface utilise des accents neutres, graphite en clair et gris clair en sombre, pour distinguer les commandes des couleurs des opérateurs. L’app suit les thèmes clair/sombre et utilise Liquid Glass sur iOS 26+, avec des matériaux système sur les versions antérieures.
 
 Pour vérifier le cœur Swift et reconstruire les données sur Mac :
 

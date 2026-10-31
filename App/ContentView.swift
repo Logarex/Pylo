@@ -49,6 +49,10 @@ struct ExplorerView: View {
     @State private var selected: StationCluster?
     @State private var search = ""
     @State private var searchMessage = ""
+    @State private var suggestions = AddressSuggestions()
+    @FocusState private var searchFocused: Bool
+    @State private var placeSearch: MKLocalSearch?
+    @State private var searchRequestID = UUID()
     @State private var showDirections = false
     var body: some View {
         @Bindable var store = store
@@ -70,9 +74,41 @@ struct ExplorerView: View {
                 VStack(spacing: 10) {
                     HStack {
                         Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                        TextField("Une ville, une adresse…", text: $search).submitLabel(.search).onSubmit { Task { await find() } }
+                        TextField("Une ville, une adresse…", text: $search)
+                            .focused($searchFocused).autocorrectionDisabled().submitLabel(.search)
+                            .onSubmit { searchFocused = false; suggestions.clear(); Task { await find() } }
+                        if !search.isEmpty {
+                            Button { search = ""; suggestions.clear(); searchMessage = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.accessibilityLabel("Effacer la recherche")
+                        }
                         Button { store.location.locate() } label: { Image(systemName: "location.fill") }.accessibilityLabel("Autour de moi")
                     }.padding(15).pyloGlass()
+                    if searchFocused && (!suggestions.results.isEmpty || suggestions.loading || !suggestions.message.isEmpty) {
+                        ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            if suggestions.loading { HStack { ProgressView(); Text("Recherche de propositions…").font(.caption).foregroundStyle(.secondary) }.padding(14) }
+                            ForEach(Array(suggestions.results.enumerated()), id: \.offset) { index, completion in
+                                if index > 0 { Divider().padding(.leading, 42) }
+                                Button {
+                                    searchFocused = false
+                                    search = [completion.title, completion.subtitle].filter { !$0.isEmpty }.joined(separator: ", ")
+                                    suggestions.clear()
+                                    Task { await find(completion: completion) }
+                                } label: {
+                                    HStack(alignment: .top, spacing: 10) {
+                                        Image(systemName: "mappin.and.ellipse").foregroundStyle(Palette.accent).frame(width: 20)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(completion.title).font(.subheadline.weight(.medium)).foregroundStyle(.primary)
+                                            if !completion.subtitle.isEmpty { Text(completion.subtitle).font(.caption).foregroundStyle(.secondary) }
+                                        }
+                                        Spacer(minLength: 0)
+                                    }.padding(12).contentShape(Rectangle())
+                                }.buttonStyle(.plain)
+                            }
+                            if !suggestions.message.isEmpty { Text(suggestions.message).font(.caption).foregroundStyle(.secondary).padding(14) }
+                        }
+                        }.frame(maxHeight: suggestions.results.isEmpty ? 75 : 250)
+                            .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 20))
+                    }
                     HStack {
                         Picker("Réseau", selection: $store.generation) { Text("Tous").tag(""); ForEach(["2G","3G","4G","5G"], id: \.self) { Text($0).tag($0) } }.pickerStyle(.segmented)
                         Menu {
@@ -94,6 +130,7 @@ struct ExplorerView: View {
                 }.pyloGlass().padding(.trailing, 12)
             }
             .safeAreaInset(edge: .bottom) {
+                if !searchFocused {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Le réseau, autour de toi.").font(.headline)
@@ -106,6 +143,7 @@ struct ExplorerView: View {
                     Spacer()
                     if store.loading { ProgressView() } else { Image(systemName: "antenna.radiowaves.left.and.right").foregroundStyle(Palette.accent).font(.title2) }
                 }.padding(18).pyloGlass().padding()
+                }
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(item: $selected) { cluster in
@@ -119,7 +157,15 @@ struct ExplorerView: View {
                 }
             }
             .task { await store.load() }
-            .onDisappear { reloadTask?.cancel() }
+            .onDisappear { reloadTask?.cancel(); suggestions.clear(); searchRequestID = UUID(); placeSearch?.cancel() }
+            .onChange(of: search) {
+                searchMessage = ""
+                if searchFocused { searchRequestID = UUID(); placeSearch?.cancel(); suggestions.update(search, region: store.region) }
+            }
+            .onChange(of: searchFocused) {
+                if searchFocused { suggestions.update(search, region: store.region) }
+                else { suggestions.clear() }
+            }
             .onChange(of: store.generation) { Task { await store.load() } }
             .onChange(of: store.operatorName) { Task { await store.load() } }
             .onChange(of: store.location.coordinate?.latitude) {
@@ -134,14 +180,59 @@ struct ExplorerView: View {
         store.region = target
         command = MapCommand(region: target)
     }
-    private func find() async {
-        guard !search.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        let request = MKLocalSearch.Request(); request.naturalLanguageQuery = search; request.region = store.region
+    private func find(completion: MKLocalSearchCompletion? = nil) async {
+        guard completion != nil || !search.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        placeSearch?.cancel()
+        let token = UUID(); searchRequestID = token
+        let request: MKLocalSearch.Request
+        if let completion { request = MKLocalSearch.Request(completion: completion) }
+        else { request = MKLocalSearch.Request(); request.naturalLanguageQuery = search }
+        request.region = store.region
+        let lookup = MKLocalSearch(request: request); placeSearch = lookup
         do {
-            let response = try await MKLocalSearch(request: request).start()
+            let response = try await lookup.start()
+            guard searchRequestID == token, !Task.isCancelled else { return }
             guard let item = response.mapItems.first else { searchMessage = "Aucun lieu trouvé."; return }
             command = MapCommand(region: MKCoordinateRegion(center: item.placemark.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04))); searchMessage = ""
-        } catch { searchMessage = "La recherche nécessite une connexion." }
+        } catch {
+            if searchRequestID == token && !Task.isCancelled { searchMessage = "Recherche indisponible. Vérifie ta connexion puis réessaie." }
+        }
+    }
+}
+@MainActor @Observable final class AddressSuggestions: NSObject, @preconcurrency MKLocalSearchCompleterDelegate {
+    var results: [MKLocalSearchCompletion] = []
+    var loading = false
+    var message = ""
+    @ObservationIgnored private var completer: MKLocalSearchCompleter?
+    @ObservationIgnored private var pending: Task<Void, Never>?
+    func clear() {
+        pending?.cancel(); pending = nil
+        completer?.delegate = nil; completer?.cancel(); completer = nil
+        results = []; loading = false; message = ""
+    }
+    func update(_ text: String, region: MKCoordinateRegion) {
+        clear()
+        let query = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard query.count >= 2 else { return }
+        loading = true
+        pending = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled, let self else { return }
+            let engine = MKLocalSearchCompleter()
+            self.completer = engine
+            engine.delegate = self; engine.region = region; engine.resultTypes = [.address]
+            engine.queryFragment = query
+        }
+    }
+    func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+        guard completer === self.completer else { return }
+        results = Array(completer.results.prefix(5)); loading = false
+        message = results.isEmpty ? "Aucune proposition. Tu peux préciser l’adresse ou appuyer sur Rechercher." : ""
+    }
+    func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
+        guard completer === self.completer else { return }
+        results = []; loading = false
+        message = "Propositions indisponibles. Vérifie ta connexion ou appuie sur Rechercher pour réessayer."
     }
 }
 private struct FavoritesRequest: Hashable {

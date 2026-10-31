@@ -38,3 +38,11 @@ Les orientations des supports principaux de toutes les stations chargées sont r
 Les favoris utilisent une requête sur la clé primaire des identifiants enregistrés, en lots de 500, hors du fil principal. Une liste vide n’ouvre pas la base. La tâche se relance seulement à l’apparition de la vue, lors d’un changement de favoris ou après un import de base ; les résultats d’une tâche annulée ne remplacent pas l’affichage courant.
 
 Le suivi réseau distingue le chemin internet NWPath de la technologie CoreTelephony, et les états non lus/connexion absente de la valeur false de isConstrained. Le bouton Actualiser relit les deux sources. Les notifications de changement radio et le retour au premier plan actualisent les informations disponibles. Aucune valeur 4G/5G n’est déduite du Wi-Fi ni inventée lorsqu’iOS ne répond pas.
+
+### Recherche et code Field Test
+
+Afficher le code `*3001#12345#*` avec `Text(verbatim:)` : un littéral Text SwiftUI peut interpréter les astérisques comme du Markdown et les masquer. La valeur copiée doit rester identique.
+
+La recherche utilise MKLocalSearchCompleter après deux caractères et 250 ms de pause. Chaque saisie annule le moteur précédent ; seules les réponses du moteur courant sont acceptées. Cinq propositions au maximum sont affichées dans une liste défilante. Une sélection est résolue via MKLocalSearch.Request(completion:), sans concaténation approximative pour la recherche. La fermeture de la vue annule les recherches et ignore les anciennes réponses.
+
+La couleur d’interface est centralisée dans AccentColor.colorset : graphite en clair, gris clair en sombre. Palette.accent référence cet asset dynamique. Les couleurs des opérateurs sont définies séparément dans Palette.operatorColor ; ne pas les modifier lors d’un changement de thème de l’interface.

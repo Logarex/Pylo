@@ -54,7 +54,7 @@ struct FieldTestView: View {
                     }
                     InfoCard("1 · Ouvrir Field Test") {
                         Text("Dans Téléphone → Clavier, saisis ce code puis appuie sur Appeler.")
-                        HStack { Text("*3001#12345#*").font(.title3.monospaced()); Spacer(); Button("Copier") { UIPasteboard.general.string = "*3001#12345#*" } }
+                        HStack { Text(verbatim: "*3001#12345#*").font(.title3.monospaced()); Spacer(); Button("Copier") { UIPasteboard.general.string = "*3001#12345#*" } }
                         Text("Les menus varient selon l’iPhone, le modem, iOS et l’opérateur. Certaines rubriques peuvent manquer ; Pylo ne peut pas ouvrir directement ce menu à ta place.").font(.caption).foregroundStyle(.secondary)
                     }
                     InfoCard("2 · Lire la puissance et la qualité") {
