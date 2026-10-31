@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 2,
-  "sourceVersion": "aa1d156e-9230-4a5b-987f-07e427555db7:2026-10-29T14:28:49.793000+00:00",
-  "sourceDate": "2026-10-29",
-  "url": "https://github.com/Logarex/Pylo/releases/download/anfr-bootstrap-v2/antennas.sqlite.gz",
-  "sha256": "49d6c1f5c126cade17218479d152382ee8afc7e56d5d118827d87e8b05cb4b8d",
-  "compressedBytes": 35500429,
-  "uncompressedBytes": 146309120
+  "compressedBytes" : 35500413,
+  "schemaVersion" : 2,
+  "sha256" : "67003107d72d98f15a2eb13ea6387a314c3ada6239168d2b834bc991db2af8e8",
+  "sourceDate" : "2026-10-29",
+  "sourceVersion" : "aa1d156e-9230-4a5b-987f-07e427555db7:2026-10-29T14:28:49.793000+00:00",
+  "uncompressedBytes" : 146309120,
+  "url" : "https://github.com/Logarex/Pylo/releases/download/anfr-2026-10-31-41244085828/antennas.sqlite.gz"
 }
