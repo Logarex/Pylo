@@ -1,5 +1,30 @@
 # Maintenance de Pylo
 
+## Développement local
+
+Il faut **Xcode 26 ou plus récent** et **iOS 18 minimum**.
+
+1. Clone le dépôt et ouvre `Pylo.xcodeproj`.
+2. Sélectionne le schéma **Pylo**, puis un simulateur iPhone.
+3. Pour ton iPhone, choisis ton équipe dans **Signing & Capabilities**.
+
+Aucun paquet tiers à installer. Tout est écrit en Swift, avec SwiftUI, MapKit, Swift Charts et SQLite.
+
+| Dossier | Contenu |
+| --- | --- |
+| `App/` | Interface et services iPhone |
+| `Sources/PyloCore/` | Modèles, base de données et traitements partagés |
+| `Sources/ANFRImport/` | Récupération et préparation des données ANFR |
+| `Tests/` | Tests du cœur Swift |
+| `.github/workflows/` | Vérifications et publication automatique des données |
+
+```sh
+swift test
+mkdir -p output
+swift run -c release anfr-import output/antennas.sqlite
+```
+
+
 ## Publication des données
 
 Le workflow `.github/workflows/anfr.yml` vérifie le catalogue officiel chaque jour à 07:23 UTC. `workflow_dispatch` permet un lancement manuel, avec `force` si une reconstruction est souhaitée malgré une source identique. L’ANFR déclare une fréquence hebdomadaire ; ne pas supposer une publication le premier ou le troisième jour du mois.
