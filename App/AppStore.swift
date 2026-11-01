@@ -30,6 +30,7 @@ import MapKit
     }
     private var request = UUID()
     @ObservationIgnored private var centeredPositionRevision = 0
+    @ObservationIgnored private var pendingMapCenter = false
     static var localDatabase: URL { URL.documentsDirectory.appendingPathComponent("antennas.sqlite") }
     init() {
         automaticUpdates = UserDefaults.standard.object(forKey: "automaticDataUpdates") as? Bool ?? true
@@ -62,12 +63,18 @@ import MapKit
             ready = true
         } catch { message = error.localizedDescription; ready = true }
     }
+    func locateOnMap() {
+        pendingMapCenter = true
+        location.locate()
+    }
+    func cancelAutomaticCentering() { pendingMapCenter = false }
     func newLocationRegion() -> MKCoordinateRegion? {
-        guard location.positionRevision > centeredPositionRevision,
+        guard pendingMapCenter, location.positionRevision > centeredPositionRevision,
               let coordinate = location.coordinate, let measuredAt = location.measuredAt,
               (-5...60).contains(Date().timeIntervalSince(measuredAt)) else { return nil }
         centeredPositionRevision = location.positionRevision
-        return MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04))
+        pendingMapCenter = false
+        return MKCoordinateRegion(center: coordinate, span: region.span)
     }
     func checkDataUpdates(automatic: Bool = false) async {
         guard ready, !isUpdating else { return }

@@ -25,6 +25,8 @@ struct LearnView: View {
 }
 struct DataView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.openURL) private var openURL
+    @State private var addressCopied = false
     @State private var importing = false
     var body: some View {
         @Bindable var store = store
@@ -35,6 +37,16 @@ struct DataView: View {
                     Text("Pylo").font(.largeTitle.bold())
                     Text("Gratuite. Code sous licence GPL-3.0. Développée par un étudiant.").font(.headline)
                     Text("J’aime comprendre comment le réseau fonctionne. Alors j’ai créé Pylo : une app simple pour explorer les antennes et apprendre au passage. Pas de pub, pas de compte, pas de suivi.")
+                }
+                Section("Une question, une idée ou un bug ?") {
+                    Link(destination: URL(string: "https://github.com/Logarex/Pylo/issues/new/choose")!) { Label("Ouvrir une issue sur GitHub", systemImage: "bubble.left.and.bubble.right") }
+                    Button {
+                        openURL(URL(string: "mailto:pylo@nephoos.com")!) { accepted in
+                            if !accepted { UIPasteboard.general.string = "pylo@nephoos.com"; addressCopied = true }
+                        }
+                    } label: { Label("Écrire à pylo@nephoos.com", systemImage: "envelope") }
+                    Button("Copier l’adresse mail", systemImage: "doc.on.doc") { UIPasteboard.general.string = "pylo@nephoos.com"; addressCopied = true }
+                    Text("Pylo est un projet étudiant. Tes retours m’aident à l’améliorer.").font(.footnote).foregroundStyle(.secondary)
                 }
                 Section("Pour aller plus loin") {
                     NavigationLink { LearnView() } label: { Label("Comprendre les technologies", systemImage: "book.closed") }
@@ -64,6 +76,7 @@ struct DataView: View {
                     Text("Pylo n’est pas affiliée à Apple, à l’ANFR ou aux opérateurs.").font(.footnote).foregroundStyle(.secondary)
                 }
             }.navigationTitle("Le projet")
+            .alert("Adresse copiée", isPresented: $addressCopied) { Button("OK", role: .cancel) {} } message: { Text("pylo@nephoos.com est dans le presse-papiers.") }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.database, .data]) { result in
                 switch result { case .success(let url): Task { await store.importDatabase(url) }; case .failure(let error): store.message = error.localizedDescription }
             }

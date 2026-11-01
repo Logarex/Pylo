@@ -15,7 +15,7 @@ struct ContentView: View {
             Tab("Le projet", systemImage: "info.circle") { DataView() }
         }
         } else { ProgressView("Préparation des données ANFR…").padding() }
-        }.task { await store.prepare(); store.location.locate(); await store.checkDataUpdates(automatic: true) }
+        }.task { await store.prepare(); store.locateOnMap(); await store.checkDataUpdates(automatic: true) }
         .onChange(of: scenePhase) { if scenePhase == .active { store.location.resumeIfNeeded(); Task { await store.checkDataUpdates(automatic: true) } } else { store.location.suspend() } }
         .onChange(of: store.device.connection) { Task { await store.checkDataUpdates(automatic: true) } }
     }
@@ -60,7 +60,7 @@ struct ExplorerView: View {
     var body: some View {
         @Bindable var store = store
         NavigationStack {
-            NativeAntennaMap(initialRegion: store.region, stations: store.stations, directions: store.directions, showDirections: showDirections, command: command, onRegion: { region in
+            NativeAntennaMap(initialRegion: store.region, stations: store.stations, directions: store.directions, showDirections: showDirections, command: command, onInteraction: { store.cancelAutomaticCentering() }, onRegion: { region in
                 store.region = region
                 reloadTask?.cancel()
                 reloadTask = Task {
@@ -83,7 +83,7 @@ struct ExplorerView: View {
                         if !search.isEmpty {
                             Button { search = ""; suggestions.clear(); searchMessage = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.accessibilityLabel("Effacer la recherche")
                         }
-                        Button { store.location.locate() } label: { Image(systemName: "location.fill") }.accessibilityLabel("Autour de moi")
+                        Button { store.locateOnMap() } label: { Image(systemName: "location.fill") }.accessibilityLabel("Autour de moi")
                     }.padding(15).pyloGlass()
                     if searchFocused && (!suggestions.results.isEmpty || suggestions.loading || !suggestions.message.isEmpty) {
                         ScrollView {
@@ -178,6 +178,7 @@ struct ExplorerView: View {
         }
     }
     private func zoom(_ factor: Double) {
+        store.cancelAutomaticCentering()
         let r = store.region
         let span = MKCoordinateSpan(latitudeDelta: min(140, max(0.001, r.span.latitudeDelta * factor)), longitudeDelta: min(300, max(0.001, r.span.longitudeDelta * factor)))
         let target = MKCoordinateRegion(center: r.center, span: span)
@@ -186,6 +187,7 @@ struct ExplorerView: View {
     }
     private func find(completion: MKLocalSearchCompletion? = nil) async {
         guard completion != nil || !search.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        store.cancelAutomaticCentering()
         placeSearch?.cancel()
         let token = UUID(); searchRequestID = token
         let request: MKLocalSearch.Request

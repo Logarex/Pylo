@@ -18,6 +18,7 @@ struct NativeAntennaMap: UIViewRepresentable {
     let directions: [String: [Double]]
     let showDirections: Bool
     let command: MapCommand?
+    let onInteraction: () -> Void
     let onRegion: (MKCoordinateRegion) -> Void
     let onSelection: ([Station]) -> Void
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -126,6 +127,11 @@ struct NativeAntennaMap: UIViewRepresentable {
             }
         }
         func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
+            func hasActiveGesture(_ view: UIView) -> Bool {
+                if (view.gestureRecognizers ?? []).contains(where: { $0.state == .began || $0.state == .changed }) { return true }
+                return view.subviews.contains(where: hasActiveGesture)
+            }
+            if hasActiveGesture(mapView) { parent.onInteraction() }
             moving = true; refreshTask?.cancel()
             directionsLayer?.isHidden = true
         }

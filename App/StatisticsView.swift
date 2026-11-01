@@ -75,14 +75,8 @@ struct StatisticsView: View {
     }
     private var comparisonCard: some View {
         InfoCard("Comparer deux opérateurs", subtitle: "Même source ANFR, mêmes critères de comptage") {
-            Picker("Premier opérateur", selection: $firstOperator) {
-                Text("Choisir").tag("")
-                ForEach(operators, id: \.self) { Text(operatorDisplayName($0)).tag($0) }
-            }
-            Picker("Second opérateur", selection: $secondOperator) {
-                Text("Choisir").tag("")
-                ForEach(operators.filter { $0 != firstOperator }, id: \.self) { Text(operatorDisplayName($0)).tag($0) }
-            }
+            operatorMenu("Premier opérateur", selection: $firstOperator, choices: operators)
+            operatorMenu("Second opérateur", selection: $secondOperator, choices: operators.filter { $0 != firstOperator })
             if firstOperator == secondOperator && !firstOperator.isEmpty { Text("Choisis deux opérateurs différents.").font(.caption) }
             else if comparison.count == 2 {
                 ForEach(Array(comparison.enumerated()), id: \.offset) { index, value in
@@ -121,6 +115,27 @@ struct StatisticsView: View {
         .task(id: "\(firstOperator)|\(secondOperator)|\(store.databaseRevision)") { await loadComparison() }
         .onChange(of: firstOperator) {
             if firstOperator == secondOperator { secondOperator = operators.first { $0 != firstOperator } ?? "" }
+        }
+    }
+    private func operatorMenu(_ title: String, selection: Binding<String>, choices: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.caption).foregroundStyle(.secondary)
+            Menu {
+                ForEach(choices, id: \.self) { name in
+                    Button { selection.wrappedValue = name } label: {
+                        if selection.wrappedValue == name { Label(operatorDisplayName(name), systemImage: "checkmark") }
+                        else { Text(operatorDisplayName(name)) }
+                    }
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    Text(selection.wrappedValue.isEmpty ? "Choisir un opérateur" : operatorDisplayName(selection.wrappedValue))
+                        .font(.body).lineLimit(1).minimumScaleFactor(0.75)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.up.chevron.down").font(.caption).accessibilityHidden(true)
+                }.frame(maxWidth: .infinity, alignment: .leading).padding(12)
+                    .background(.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+            }.accessibilityLabel(title).accessibilityValue(operatorDisplayName(selection.wrappedValue))
         }
     }
     private func loadComparison() async {

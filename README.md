@@ -34,7 +34,7 @@ Pylo est en préparation pour une publication sur l’App Store. Le lien de tél
 - **Field Test** : un guide pour ouvrir le menu avec `*3001#12345#*` et comprendre le signal, le bruit, les technologies et les identifiants radio. Un décodeur ECI LTE aide à lire les identifiants.
 - **Statistiques** : stations, supports, générations, fréquences et évolutions entre publications. On peut comparer deux opérateurs sur la même base.
 
-Pylo suit le thème clair ou sombre de ton iPhone, avec une interface native et Liquid Glass sur iOS 26. Compatible à partir d’iOS 18.
+Pylo suit le thème clair ou sombre de ton iPhone, avec une interface native et Liquid Glass sur iOS 26. Disponible pour iPhone et iPad à partir d’iOS 18.
 
 Les données sont consultables hors ligne. Le fond de carte, la recherche et les itinéraires peuvent nécessiter internet.
 
@@ -53,6 +53,10 @@ Une station correspond aux équipements d’un opérateur et peut être rattach�
 Les flèches montrent une direction, pas une couverture. La station la plus proche n’est pas forcément celle utilisée par l’iPhone. iOS ne permet pas aux apps de lire publiquement la cellule connectée, les bandes actives ou les mesures RSRP, RSRQ et SINR : le guide Field Test aide à les retrouver et à les comprendre.
 
 Les dates affichées sont celles déclarées à l’ANFR. Elles peuvent manquer ou être décalées par rapport à la situation sur le terrain.
+
+## Une question ou un bug ?
+
+Tu peux [ouvrir une issue sur GitHub](https://github.com/Logarex/Pylo/issues) ou m’écrire à [pylo@nephoos.com](mailto:pylo@nephoos.com). Tes retours m’aident à améliorer Pylo.
 
 ## Vie privée et sources
 
