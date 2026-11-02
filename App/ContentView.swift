@@ -133,17 +133,16 @@ struct ExplorerView: View {
                 }.pyloGlass().padding(.trailing, 12)
             }
             .safeAreaInset(edge: .bottom) {
-                if !searchFocused {
+                if !searchFocused && (store.loading || store.message != nil || !store.location.status.isEmpty || !searchMessage.isEmpty) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Le réseau, autour de toi.").font(.headline)
-                        Text(store.message ?? (store.stations.count >= 600 ? "600 stations affichées · zoome pour affiner" : "\(store.stations.count) stations dans cette zone")).font(.caption).foregroundStyle(.secondary)
+                        if let message = store.message { Text(message).font(.caption) }
                         if !store.location.status.isEmpty { Text(store.location.status).font(.caption) }
                         if !searchMessage.isEmpty { Text(searchMessage).font(.caption) }
                     }
                     Spacer()
-                    if store.loading { ProgressView() } else { Image(systemName: "antenna.radiowaves.left.and.right").foregroundStyle(Palette.accent).font(.title2) }
-                }.padding(18).pyloGlass().padding()
+                    if store.loading { ProgressView() }
+                }.padding(14).pyloGlass().padding()
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
