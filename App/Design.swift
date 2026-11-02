@@ -75,7 +75,7 @@ struct RadioLine: Identifiable {
         monitor.pathUpdateHandler = { [weak self] path in
             Task { @MainActor [weak self] in self?.apply(path) }
         }
-        monitor.start(queue: DispatchQueue(label: "fr.logarex.pylo.network"))
+        monitor.start(queue: DispatchQueue(label: "org.epimac.pylo.network"))
         radioTask = Task { @MainActor [weak self] in
             for await _ in NotificationCenter.default.notifications(named: .CTServiceRadioAccessTechnologyDidChange).map({ _ in true }) {
                 guard let self else { return }
