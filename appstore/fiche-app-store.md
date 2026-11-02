@@ -88,7 +88,7 @@ Tu peux aussi laisser cette rubrique vide pour l'instant : elle est facultative.
 
 ---
 
-## 6. Page de la version 0.2.0 (iOS)
+## 6. Page de la version 1.0.0 (iOS)
 
 ### Aperçus et captures d'écran
 - **iPhone 6,9″** (1320 × 2868) : dossier `appstore/screenshots/iphone-6.9/`
@@ -158,8 +158,7 @@ https://github.com/Logarex/Pylo
 ```
 
 ### Version
-`0.2.0`
-(Pour une première publication, beaucoup préfèrent `1.0` : il suffit de changer `MARKETING_VERSION` dans Xcode avant d'envoyer le build.)
+`1.0.0`
 
 ### Copyright
 ```

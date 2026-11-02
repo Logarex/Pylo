@@ -14,9 +14,13 @@ Avec Pylo, tu peux explorer les réseaux autour de toi et apprendre à lire les 
 
 **Gratuite et open source · développée par un étudiant · licence GPL-3.0.**
 
-## Disponibilité
+## Télécharger Pylo
 
-Pylo est en préparation pour une publication sur l’App Store. Le lien de téléchargement sera ajouté ici à sa sortie.
+Pylo est disponible gratuitement sur l’App Store, pour iPhone et iPad à partir d’iOS 18 :
+
+**https://apps.apple.com/app/pylo/id6829750711**
+
+Les notes de chaque version sont dans les [releases GitHub](https://github.com/Logarex/Pylo/releases?q=v&expanded=true).
 
 ## Un aperçu de l’app
 
