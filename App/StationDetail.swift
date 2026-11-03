@@ -24,7 +24,7 @@ struct StationDetail: View {
             ScrollView {
                 VStack(spacing: 16) {
                     hero
-                    InfoCard("Les réseaux de cette station", subtitle: "Chaque bande a son propre état déclaré à l’ANFR.") {
+                    InfoCard("Les réseaux de cette station") {
                         if let error { Text(error).foregroundStyle(.secondary) }
                         ForEach(["2G","3G","4G","5G"], id: \.self) { g in
                             let group = systems.filter { $0.generation == g }
@@ -37,15 +37,15 @@ struct StationDetail: View {
                                             Spacer()
                                             Text(system.status).font(.caption.weight(.medium)).foregroundStyle(system.status.contains("Projet") ? Color.orange : Color.teal).multilineTextAlignment(.trailing)
                                         }
-                                        if !system.date.isEmpty { Text("Première date ANFR renseignée : \(formattedDate(system.date))").font(.caption).foregroundStyle(.secondary) }
+                                        if !system.date.isEmpty { Text("Déclarée le \(formattedDate(system.date))").font(.caption).foregroundStyle(.secondary) }
                                         if !system.azimuths.isEmpty { Text("Directions : \(system.azimuths.map { "\(Int($0))°" }.joined(separator: " · "))").font(.caption).foregroundStyle(.secondary) }
                                     }.padding(12).background(Palette.generation(g).opacity(0.06), in: .rect(cornerRadius: 14))
                                 }
                             }
                         }
-                        Text("GSM, UMTS, LTE et NR sont les technologies radio. Les nombres indiquent les bandes de fréquence en MHz. La date système ANFR n’est pas la date d’ajout à Pylo.").font(.footnote).foregroundStyle(.secondary)
+                        Text("Les nombres sont les fréquences en MHz.").font(.footnote).foregroundStyle(.secondary)
                     }
-                    InfoCard("Dans quelle direction ?", subtitle: "Les axes viennent des azimuts déclarés par l’ANFR.") {
+                    InfoCard("Dans quelle direction ?") {
                         HStack(spacing: 22) {
                             CompassDiagram(azimuths: azimuths, bearing: bearing, heading: store.location.headingReference == "nord vrai" ? store.location.heading : nil, color: color).frame(width: 130, height: 150)
                             VStack(alignment: .leading, spacing: 9) {
@@ -54,22 +54,22 @@ struct StationDetail: View {
                                 if let heading = store.location.heading { Text("Ton iPhone pointe à \(Int(heading))° du \(store.location.headingReference).").font(.caption).foregroundStyle(.secondary) }
                             }
                         }
-                        Text("0° = nord, 90° = est. Les traits montrent des directions, pas des zones de couverture. L’ANFR ne fournit ici ni l’ouverture du faisceau ni son inclinaison. Plusieurs bandes peuvent avoir des directions différentes.").font(.footnote).foregroundStyle(.secondary)
+                        Text("0° = nord, 90° = est. Les traits montrent où pointent les antennes, pas jusqu’où elles portent.").font(.footnote).foregroundStyle(.secondary)
                         Button("Utiliser ma position et la boussole", systemImage: "location.north.circle") { store.location.locate() }
                         if !store.location.status.isEmpty { Text(store.location.status).font(.caption).foregroundStyle(.orange) }
                     }
-                    InfoCard("Et la réception chez moi ?", subtitle: "Des indices pour comprendre, pas une mesure de ton signal.") {
+                    InfoCard("Et la réception chez moi ?") {
                         if let distance {
                             Label(distance.formatted(.number.precision(.fractionLength(0))) + " m à vol d’oiseau", systemImage: "point.topleft.down.to.point.bottomright.curvepath").font(.headline)
                             if let accuracy = store.location.accuracy { Text("Précision de ta position : environ \(Int(max(0,accuracy))) m.").font(.caption).foregroundStyle(.secondary) }
-                            Text(distance < 1000 ? "Cette station est proche. Les murs, le relief, la direction des panneaux et la charge du réseau peuvent quand même dégrader la réception." : "La distance atténue le signal. Une bande basse peut aider à porter plus loin ; les obstacles et les autres signaux restent déterminants.")
+                            Text(distance < 1000 ? "Elle est proche, mais les murs et le relief peuvent quand même gêner." : "Le signal faiblit avec la distance. Les bandes basses portent plus loin.")
                             if let user = store.location.coordinate, !azimuths.isEmpty {
                                 let towardUser = Geometry.bearing(lat1: station.latitude, lon1: station.longitude, lat2: user.latitude, lon2: user.longitude)
                                 let delta = azimuths.map { Geometry.angularDifference($0, towardUser) }.min() ?? 0
-                                Text("Tu te situes à \(Int(delta))° de l’axe déclaré le plus proche. Cet angle ne suffit pas à dire si tu es dans son faisceau.").font(.footnote)
+                                Text("Tu te situes à \(Int(delta))° de l’axe le plus proche.").font(.footnote)
                             }
                         } else { Text("Autorise la localisation pour connaître la distance et la direction de cette station depuis toi.") }
-                        Text("On ne peut pas calculer un RSRP, un SINR ou un débit fiable avec la distance seule : il manque la puissance émise, les gains, les obstacles et le bruit. Pour savoir ce que reçoit vraiment ton iPhone, regarde Field Test.").font(.footnote).foregroundStyle(.secondary)
+                        Text("Pour savoir ce que capte vraiment ton iPhone, regarde Field Test.").font(.footnote).foregroundStyle(.secondary)
                         NavigationLink { FieldTestView() } label: { Label("Comprendre mon signal", systemImage: "waveform.path.ecg") }
                     }
                     InfoCard("Les dates de la station") {
@@ -77,10 +77,10 @@ struct StationDetail: View {
                             LabeledContent("Implantation", value: dates.implantation.isEmpty ? "Non renseignée" : formattedDate(dates.implantation))
                             LabeledContent("Mise en service", value: dates.service.isEmpty ? "Non renseignée" : formattedDate(dates.service))
                             LabeledContent("Dernière modification", value: dates.modification.isEmpty ? "Non renseignée" : formattedDate(dates.modification))
-                            Text("Dates déclarées de la station, issues des installations ANFR de plus de 5 watts. Elles ne sont pas les dates de chaque bande ni une mesure de l’activité actuelle.").font(.caption).foregroundStyle(.secondary)
+                            Text("Dates déclarées à l’ANFR pour l’ensemble de la station.").font(.caption).foregroundStyle(.secondary)
                             Text("Source : " + dates.source).font(.caption2).foregroundStyle(.secondary)
                         } else {
-                            Text("Dates indisponibles dans cette copie pour cette station. Vérifie les mises à jour dans Le projet.").font(.subheadline).foregroundStyle(.secondary)
+                            Text("Pas de dates pour cette station.").font(.subheadline).foregroundStyle(.secondary)
                         }
                     }
                     InfoCard("Le site en détail") {
@@ -94,10 +94,10 @@ struct StationDetail: View {
                         }
                         LabeledContent("Publication source", value: formattedDate(station.updated))
                         LabeledContent("Coordonnées", value: String(format: "%.5f, %.5f", station.latitude, station.longitude))
-                        Text("Une station regroupe des équipements d’un opérateur et peut être rattachée à plusieurs supports dans la source. Plusieurs stations peuvent partager un support. La hauteur du support n’est pas forcément celle des panneaux. Si plusieurs supports sont présents, le repère de carte et la distance utilisent le premier enregistré ; les directions ci-dessus regroupent les azimuts déclarés.").font(.footnote).foregroundStyle(.secondary)
+                        Text("La hauteur est celle du support, pas des panneaux. S’il y a plusieurs supports, la carte utilise le premier.").font(.footnote).foregroundStyle(.secondary)
                     }
                     if !sourceDetails.isEmpty {
-                        InfoCard("Ce que déclare l’ANFR", subtitle: "Les informations d’origine restent consultables, même si l’adresse est rendue plus lisible.") {
+                        InfoCard("Ce que déclare l’ANFR") {
                             ForEach(sourceDetails) { source in
                                 VStack(alignment: .leading, spacing: 12) {
                                     Text("Support \(source.id)").font(.headline)
@@ -123,13 +123,13 @@ struct StationDetail: View {
                                             VStack(alignment: .leading, spacing: 3) { Text(key).font(.caption.monospaced()).foregroundStyle(.secondary); Text(source.details.fields[key].flatMap { $0.isEmpty ? nil : $0 } ?? "Non renseigné").font(.footnote).textSelection(.enabled) }.padding(.vertical,3)
                                         }
                                         ShareLink(item: source.exportJSON) { Label("Exporter les lignes ANFR originales", systemImage: "square.and.arrow.up") }
-                                        Text("Les identifiants de lignes sont propres à la publication source ; ce ne sont pas des identifiants radio. Les libellés de type, de propriétaire et de commune viennent des référentiels officiels consultés le \(formattedDate(source.details.referenceDate)).").font(.caption).foregroundStyle(.secondary)
+                                        Text("Identifiants du fichier ANFR, différents des identifiants radio. Libellés à jour au \(formattedDate(source.details.referenceDate)).").font(.caption).foregroundStyle(.secondary)
                                     }
                                 }
                             }
                         }
                     }
-                    InfoCard("À garder sous la main") {
+                    InfoCard("Garder et partager") {
                         Button { store.toggle(station) } label: { Label(store.favorites.contains(station.id) ? "Retirer des favoris" : "Garder en favori", systemImage: store.favorites.contains(station.id) ? "star.fill" : "star") }
                         Button("Itinéraire dans Plans", systemImage: "arrow.triangle.turn.up.right.diamond") {
                             let item = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: station.latitude, longitude: station.longitude)))
@@ -152,7 +152,6 @@ struct StationDetail: View {
             Text(operatorDisplayName(station.operatorName)).font(.largeTitle.bold())
             Text(station.readableAddress).font(.subheadline).foregroundStyle(.secondary)
             HStack { ForEach(["2G","3G","4G","5G"].filter { g in systems.contains { $0.generation == g } }, id: \.self) { g in Text(g).font(.subheadline.bold()).padding(.horizontal,12).padding(.vertical,7).background(Palette.generation(g).opacity(0.12), in: Capsule()).foregroundStyle(Palette.generation(g)) } }
-            Label("Station déclarée · connexion non confirmée", systemImage: "info.circle").font(.caption).foregroundStyle(.secondary)
         }.frame(maxWidth: .infinity, alignment: .leading).padding(24).background(color.opacity(0.07), in: .rect(cornerRadius: 28))
     }
     private func loadSystems() async {

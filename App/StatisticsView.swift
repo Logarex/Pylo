@@ -16,8 +16,8 @@ struct StatisticsView: View {
             ScrollView {
                 LazyVStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 9) {
-                        Text("Le réseau en chiffres.").font(.largeTitle.bold())
-                        Text("Toute la base ANFR, France et outre-mer. Ces chiffres ne dépendent pas du zoom de la carte.").foregroundStyle(.secondary)
+                        Text("Toutes les antennes").font(.largeTitle.bold())
+                        Text("France et outre-mer, quel que soit le zoom de la carte.").foregroundStyle(.secondary)
                         Picker("Opérateur", selection: $selectedOperator) { Text("Tous les opérateurs").tag(""); ForEach(operators, id: \.self) { Text(operatorDisplayName($0)).tag($0) } }.pickerStyle(.menu)
                     }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical,8)
                     if let stats {
@@ -27,42 +27,40 @@ struct StatisticsView: View {
                             metric(stats.systemCount, "Systèmes / bandes", "waveform")
                             metric(stats.operators.count, "Opérateurs", "person.2")
                         }
-                        InfoCard("Qui est présent ?", subtitle: "Répartition des stations par opérateur") {
+                        InfoCard("Stations par opérateur") {
                             Chart(operatorSlices(stats.operators)) { item in SectorMark(angle: .value("Stations",item.count), innerRadius: .ratio(0.62), angularInset: 2).foregroundStyle(by: .value("Opérateur", operatorDisplayName(item.label))) }
                                 .chartForegroundStyleScale(domain: operatorSlices(stats.operators).map { operatorDisplayName($0.label) }, range: operatorSlices(stats.operators).map { Palette.operatorColor($0.label) }).frame(height: 240)
                                 .accessibilityLabel("Répartition des stations par opérateur")
                             ForEach(stats.operators) { item in HStack { Circle().fill(Palette.operatorColor(item.label)).frame(width:8,height:8); Text(operatorDisplayName(item.label)).font(.caption); Spacer(); Text(item.count.formatted()).font(.caption.monospacedDigit()) } }
                         }
-                        InfoCard("De la 2G à la 5G", subtitle: "Nombre de stations avec au moins un système de cette génération") {
+                        InfoCard("Stations par génération") {
                             Chart(stats.generations) { item in BarMark(x: .value("Génération",item.label), y: .value("Stations",item.count)).foregroundStyle(Palette.generation(item.label)).cornerRadius(5).annotation(position: .top) { Text(item.count.formatted()).font(.caption2) } }
                                 .chartYScale(domain: 0...max(1, Double(stats.generations.map(\.count).max() ?? 1) * 1.2))
                                 .chartYAxis { AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) }
                                 .frame(height: 250)
-                            Text("Une station peut apparaître dans plusieurs générations. Les colonnes ne s’additionnent donc pas au total des stations.").font(.caption).foregroundStyle(.secondary)
+                            Text("Une station peut compter dans plusieurs colonnes.").font(.caption).foregroundStyle(.secondary)
                         }
-                        InfoCard("Les bandes de fréquence", subtitle: "Nombre de couples station–système, par bande en MHz") {
+                        InfoCard("Bandes de fréquence", subtitle: "En MHz") {
                             FrequencyBars(items: stats.frequencies, color: Palette.accent)
-                            Text("Une même station peut compter plusieurs bandes et plusieurs générations dans une même bande.").font(.caption).foregroundStyle(.secondary)
                         }
-                        InfoCard("Les dates des équipements", subtitle: "À quelles périodes correspondent les équipements présents dans la base ?") {
-                            Text("Chaque barre compte les systèmes dont la date ANFR tombe dans ce mois. Un système, c’est une technologie sur une fréquence : LTE 700 et LTE 1800 comptent pour deux.").font(.subheadline)
+                        InfoCard("Dates des équipements") {
+                            Text("Systèmes déclarés par mois. LTE 700 et LTE 1800 comptent pour deux.").font(.subheadline)
                             if stats.deployments.isEmpty { Text("Aucune date renseignée dans cette période.") }
                             else { DeploymentChart(items: stats.deployments) }
-                            Text("Ce graphique donne un aperçu des dates des équipements recensés aujourd’hui. Pour connaître les stations apparues depuis la dernière publication, regarde « Ce qui a changé ». Pour la mise en service d’une station, ouvre sa fiche.").font(.caption).foregroundStyle(.secondary)
                         }
                         comparisonCard
                         InfoCard("Ce qui a changé") {
                             if let added = stats.additions, let removed = stats.removals, let previous = stats.previousDate {
                                 Label("\(added.formatted()) stations apparues", systemImage: "plus.circle.fill").foregroundStyle(.teal)
                                 Label("\(removed.formatted()) stations absentes", systemImage: "minus.circle").foregroundStyle(.orange)
-                                Text("Comparaison de la copie du \(formattedDate(previous)) avec celle du \(formattedDate(stats.sourceDate)). Une apparition n’est pas forcément une nouvelle antenne physique.").font(.caption)
+                                Text("Entre le \(formattedDate(previous)) et le \(formattedDate(stats.sourceDate)).").font(.caption)
                             } else {
-                                Text(selectedOperator.isEmpty ? "La première copie enrichie sert de point de départ. Le prochain import comparera les identifiants avec cette copie pour compter les apparitions et les retraits." : "La comparaison entre publications est disponible dans la vue Tous les opérateurs.")
+                                Text(selectedOperator.isEmpty ? "Les changements apparaîtront après la prochaine mise à jour." : "Choisis « Tous les opérateurs » pour voir les changements.")
 
                             }
                         }
                         InfoCard("Comment lire ces chiffres ?") {
-                            Text("Support : le pylône, le toit ou la structure. Station : les équipements d’un opérateur, parfois rattachés à plusieurs supports. Système : une technologie et une bande sur une station. Le nombre de panneaux physiques n’est pas disponible dans cet observatoire.")
+                            Text("Support : le pylône ou le toit. Station : les équipements d’un opérateur. Système : une technologie sur une bande.")
                             Text("Source ANFR · \(formattedDate(stats.sourceDate)) · Licence Ouverte 2.0").font(.caption).foregroundStyle(.secondary)
                         }
                     } else if let error { ContentUnavailableView("Statistiques indisponibles", systemImage: "chart.bar", description: Text(error)) }
@@ -74,7 +72,7 @@ struct StatisticsView: View {
         }
     }
     private var comparisonCard: some View {
-        InfoCard("Comparer deux opérateurs", subtitle: "Même source ANFR, mêmes critères de comptage") {
+        InfoCard("Comparer deux opérateurs") {
             operatorMenu("Premier opérateur", selection: $firstOperator, choices: operators)
             operatorMenu("Second opérateur", selection: $secondOperator, choices: operators.filter { $0 != firstOperator })
             if firstOperator == secondOperator && !firstOperator.isEmpty { Text("Choisis deux opérateurs différents.").font(.caption) }
@@ -98,7 +96,7 @@ struct StatisticsView: View {
                         }
                     }
                 }.chartForegroundStyleScale(domain: [operatorDisplayName(firstOperator), operatorDisplayName(secondOperator)], range: [Palette.operatorColor(firstOperator), Palette.operatorColor(secondOperator)]).frame(height: 240)
-                Text("Stations par génération. Ces volumes ne mesurent ni la couverture ni la qualité du réseau.").font(.caption).foregroundStyle(.secondary)
+                Text("Stations par génération.").font(.caption).foregroundStyle(.secondary)
                 DisclosureGroup("Comparer les bandes · systèmes déclarés") {
                     ForEach(Array(Set(comparison.flatMap { $0.frequencies.map(\.label) })).sorted { (Double($0) ?? 0) < (Double($1) ?? 0) }, id: \.self) { band in
                         VStack(alignment: .leading, spacing: 4) {

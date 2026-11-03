@@ -94,7 +94,7 @@ import MapKit
                 return
             }
             guard device.connection == "Wi-Fi", device.constrained != true else {
-                updateStatus = "Une mise à jour est disponible. Elle sera téléchargée en Wi-Fi, hors mode données réduites."
+                updateStatus = "Mise à jour disponible. Elle se téléchargera en Wi-Fi."
                 return
             }
             updateStatus = "Téléchargement de la base · environ \(manifest.compressedBytes / 1_000_000) Mo…"
@@ -103,14 +103,14 @@ import MapKit
             UserDefaults.standard.set(installedDigest, forKey: "installedDataDigest")
             lastDataCheck = Date(); UserDefaults.standard.set(lastDataCheck, forKey: "lastDataCheck")
             databaseRevision += 1
-            updateStatus = "Mise à jour installée. Les antennes sont prêtes."
+            updateStatus = "Mise à jour installée."
             await load()
         } catch {
-            updateStatus = "La mise à jour n’a pas pu aboutir. Ta base actuelle reste disponible. Réessaie plus tard."
+            updateStatus = "La mise à jour a échoué. Tes données actuelles restent là, réessaie plus tard."
         }
     }
     func load() async {
-        guard let url = databaseURL else { message = "Ajoute une base ANFR dans l’onglet Données."; return }
+        guard let url = databaseURL else { message = "Ajoute une base ANFR dans Le projet."; return }
         let token = UUID(); request = token; loading = true
         let r = region, g = generation, op = operatorName
         do {
@@ -146,7 +146,7 @@ import MapKit
             installedDigest = ""; UserDefaults.standard.removeObject(forKey: "installedDataDigest")
             dataSourceDate = date
             databaseRevision += 1
-            updateStatus = "Base importée et prête à être utilisée."
+            updateStatus = "Base importée."
             await load()
         } catch { message = "Import impossible : \(error.localizedDescription)" }
     }
@@ -246,7 +246,7 @@ import MapKit
         speed = fix.speed >= 0 ? fix.speed * 3.6 : nil
         course = fix.course >= 0 && fix.speed >= 0.5 ? fix.course : nil
         let age = Date().timeIntervalSince(fix.timestamp)
-        status = age > 60 ? "Cette position est ancienne ; actualise-la pour une distance plus fiable." : ""
+        status = age > 60 ? "Position ancienne. Actualise-la pour une distance plus juste." : ""
         if age <= 60 && age >= -5 { positionRevision += 1 }
         updatePermission()
     }

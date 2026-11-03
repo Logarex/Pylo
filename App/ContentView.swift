@@ -237,7 +237,7 @@ struct ExplorerView: View {
     func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
         guard completer === self.completer else { return }
         results = []; loading = false
-        message = "Propositions indisponibles. Vérifie ta connexion ou appuie sur Rechercher pour réessayer."
+        message = "Pas de suggestions. Vérifie ta connexion."
     }
 }
 private struct FavoritesRequest: Hashable {
@@ -257,7 +257,7 @@ struct FavoritesView: View {
                     if saved.isEmpty {
                         if loading { ProgressView("Lecture de tes favoris…") }
                         else if let error { ContentUnavailableView("Favoris indisponibles", systemImage: "exclamationmark.circle", description: Text(error)) }
-                        else { ContentUnavailableView("Tes antennes, de côté", systemImage: "star", description: Text(store.favorites.isEmpty ? "Ajoute une station depuis la carte pour la retrouver ici." : "Ces stations ne figurent plus dans la base actuelle. Tes identifiants favoris sont conservés.")) }
+                        else { ContentUnavailableView(store.favorites.isEmpty ? "Pas encore de favoris" : "Favoris introuvables", systemImage: "star", description: Text(store.favorites.isEmpty ? "Ajoute une station depuis la carte pour la retrouver ici." : "Ces stations ne sont plus dans la base actuelle.")) }
                     }
                 }
                 .navigationTitle("Favoris")

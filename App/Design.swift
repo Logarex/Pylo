@@ -59,9 +59,9 @@ struct RadioLine: Identifiable {
     var connectionIcon: String { connection == "Wi-Fi" ? "wifi" : connection == "Réseau mobile" ? "antenna.radiowaves.left.and.right" : "network" }
     var radioStatus: String { technologies.isEmpty ? (isSimulator ? "Indisponible sur simulateur" : "Non transmis par iOS") : technologies.joined(separator: " · ") }
     var radioExplanation: String {
-        if isSimulator { return "Le simulateur ne possède pas de modem cellulaire. La technologie 2G/3G/4G/5G doit être vérifiée sur un vrai iPhone." }
-        if technologies.isEmpty { return "iOS n’a pas fourni la technologie cellulaire à Pylo lors de cette lecture. Cela ne signifie pas que tu n’as pas de réseau. Le menu Field Test peut donner plus d’informations." }
-        return "Technologies déclarées par les lignes SIM disponibles. Elles ne décrivent pas forcément la connexion qui transporte ton trafic internet, notamment en Wi-Fi."
+        if isSimulator { return "Pas de modem sur le simulateur. Teste sur un vrai iPhone." }
+        if technologies.isEmpty { return "iOS n’a pas donné la technologie cette fois. Ça ne veut pas dire que tu n’as pas de réseau." }
+        return "Indiquée par ta carte SIM, même si tu es en Wi-Fi."
     }
     var reducedDataStatus: String {
         guard let constrained else { return hasPath ? "Sans connexion active" : "Vérification…" }

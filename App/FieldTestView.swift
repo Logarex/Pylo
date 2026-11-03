@@ -11,36 +11,36 @@ struct FieldTestView: View {
     @State private var search = ""
     @State private var eci = ""
     private let terms: [FieldTestTerm] = [
-        .init(name: "RAT / Radio Access Technology", meaning: "La famille radio utilisée : GSM (2G), WCDMA/UMTS (3G), LTE (4G) ou NR (5G).", read: "C’est le premier repère à regarder. En 5G NSA, l’iPhone peut aussi afficher des informations LTE pour la connexion d’appui."),
-        .init(name: "Serving Cell / cellule servante", meaning: "La cellule avec laquelle le téléphone échange à cet instant.", read: "Cherche Serving Cell Info, LTE, NR ou RAT selon ta version d’iOS. Ne la confonds pas avec Neighbor Cells : ce sont les cellules voisines, pas forcément utilisées."),
-        .init(name: "RSRP / SS-RSRP / CSI-RSRP", meaning: "La puissance d’un signal de référence reçu. SS et CSI désignent des références différentes en 5G.", read: "En dBm, moins négatif = plus fort. −80 est plus fort que −105. Compare le même type de mesure ; RSRP fort ne veut pas dire débit élevé."),
-        .init(name: "RSRQ / SS-RSRQ", meaning: "Un indicateur de qualité du signal de référence par rapport à la puissance reçue sur le canal.", read: "En dB, une valeur moins négative est généralement meilleure. Il aide à repérer une réception dégradée même quand la puissance semble bonne."),
-        .init(name: "SINR / SNR / SS-SINR", meaning: "Le rapport du signal utile au bruit et, pour SINR, aux interférences.", read: "Plus élevé = signal plus facile à distinguer. Un SINR faible peut expliquer une mauvaise connexion malgré un RSRP fort. SNR et SINR ne sont pas strictement la même mesure."),
-        .init(name: "RSSI", meaning: "La puissance totale reçue dans la bande mesurée : signal utile, autres signaux et bruit.", read: "En 2G, c’est un repère de puissance fréquent. En LTE, ne le lis pas seul : un RSSI élevé peut aussi venir d’interférences."),
-        .init(name: "Noise / bruit / interférences", meaning: "Le bruit vient notamment des équipements et du milieu ; les interférences viennent d’autres émissions.", read: "Field Test ne donne pas toujours une valeur de bruit séparée. Le SINR décrit leur effet relatif sur le signal utile. On ne peut pas déduire leur puissance exacte avec la seule distance."),
-        .init(name: "RSCP / Ec/No / Ec/Io", meaning: "Des indicateurs courants de la 3G : puissance d’un code reçu pour RSCP, et rapport de qualité pour Ec/No ou Ec/Io.", read: "RSCP est en dBm ; Ec/No ou Ec/Io en dB. Ne les compare pas directement aux valeurs RSRP/RSRQ de la 4G : la définition change."),
-        .init(name: "Band / freq_band_ind", meaning: "Le numéro normalisé de la bande, par exemple B3 en LTE ou n78 en 5G.", read: "B3 correspond à la bande 1 800 MHz ; B20 à 800 MHz ; B28 à 700 MHz ; n78 à 3,5 GHz environ. Le numéro de bande n’est pas la fréquence en MHz."),
-        .init(name: "EARFCN / NR-ARFCN / ARFCN / UARFCN", meaning: "Le numéro du canal radio : respectivement LTE, NR, GSM et UMTS.", read: "Il sert à retrouver la fréquence avec les tables de la technologie concernée. Ce n’est ni un numéro de station ni un identifiant unique d’antenne."),
-        .init(name: "PCI / Physical Cell ID", meaning: "Un identifiant physique local en LTE et NR. En 3G, on peut voir un PSC ; en GSM, un BSIC.", read: "Le PCI est réutilisé à beaucoup d’endroits. Un PCI seul ne permet donc pas d’identifier une antenne. Il faut au moins le réseau, le canal et le contexte géographique."),
-        .init(name: "Cell ID / ECI / NCI", meaning: "L’identifiant de cellule. ECI désigne l’identité LTE (28 bits), NCI celle de la 5G NR (36 bits).", read: "Regarde si la valeur est décimale ou hexadécimale. En LTE, on peut séparer eNodeB et identifiant local sur 8 bits. En NR, la taille de l’identifiant gNodeB varie : pas de division universelle par 256."),
-        .init(name: "eNB / eNodeB / gNB / RNC", meaning: "eNodeB : station logique LTE. gNodeB : station logique NR. RNC : contrôleur réseau en 3G.", read: "Ces identifiants réseau ne sont pas les identifiants ANFR. Une base communautaire de correspondance peut aider, si elle couvre le réseau et la zone."),
-        .init(name: "MCC / MNC / PLMN", meaning: "Les codes du réseau : MCC pour le pays, MNC pour le réseau mobile. Ensemble, ils forment le PLMN.", read: "Ils aident à distinguer le réseau réellement utilisé, notamment en itinérance. Le nom commercial affiché ne remplace pas ces codes."),
-        .init(name: "TAC / LAC", meaning: "Une zone de suivi (4G/5G) ou une zone de localisation (2G/3G).", read: "Ce sont des regroupements de cellules. Ils ne donnent ni ton adresse ni la position exacte d’une antenne."),
-        .init(name: "Bandwidth / largeur de canal", meaning: "La largeur de spectre utilisée par une porteuse, en MHz.", read: "Une largeur plus grande peut offrir davantage de capacité, mais les utilisateurs connectés et la qualité radio comptent aussi. Ce n’est pas le débit réel."),
-        .init(name: "CA / PCC / SCC / agrégation", meaning: "CA regroupe plusieurs porteuses. PCC est la principale, SCC une secondaire.", read: "Voir plusieurs bandes peut correspondre à la 4G+. Les porteuses actives changent selon le trafic et le réseau : une liste au repos ne raconte pas tout."),
-        .init(name: "NSA / SA / EN-DC", meaning: "NSA : NR avec appui LTE. SA : NR avec cœur 5G. EN-DC désigne une double connectivité LTE/NR.", read: "Le logo 5G ne prouve pas à lui seul une connexion SA. Lis les indications de mode lorsqu’elles sont disponibles dans Field Test."),
-        .init(name: "CQI / MCS / modulation / rank", meaning: "Des indications sur la qualité de canal, le codage, la modulation et les couches radio utilisées.", read: "Elles évoluent rapidement et sont adaptées par le réseau. Une modulation plus élevée demande généralement une meilleure qualité radio ; ce n’est pas un test de débit."),
-        .init(name: "Timing Advance / TA", meaning: "Un ajustement temporel pour que les émissions du téléphone arrivent au bon moment.", read: "Il peut donner un indice de distance selon la technologie et l’unité. Sans ces détails, le convertir directement en mètres serait trompeur."),
-        .init(name: "rx / tx / dl / ul / timestamp", meaning: "rx = réception, tx = émission, dl = descendant, ul = montant. Timestamp indique l’heure d’une mesure.", read: "Vérifie que la valeur est récente et son unité. Certains champs peuvent rester figés, manquer ou changer de nom selon le modem et iOS.")
+        .init(name: "RAT / Radio Access Technology", meaning: "La technologie utilisée : GSM (2G), UMTS (3G), LTE (4G) ou NR (5G).", read: "C’est la première chose à regarder. En 5G NSA, des infos LTE s’affichent aussi."),
+        .init(name: "Serving Cell / cellule servante", meaning: "La cellule à laquelle ton iPhone est connecté.", read: "À ne pas confondre avec Neighbor Cells, les cellules voisines."),
+        .init(name: "RSRP / SS-RSRP / CSI-RSRP", meaning: "La puissance du signal reçu.", read: "En dBm. Plus c’est proche de 0, plus c’est fort : −80 est mieux que −105."),
+        .init(name: "RSRQ / SS-RSRQ", meaning: "La qualité du signal reçu.", read: "En dB. Moins c’est négatif, mieux c’est. Utile quand le signal est fort mais que ça rame."),
+        .init(name: "SINR / SNR / SS-SINR", meaning: "Le rapport entre le signal utile, le bruit et les interférences.", read: "Plus c’est haut, mieux c’est. Un SINR faible explique souvent une connexion lente malgré un bon RSRP."),
+        .init(name: "RSSI", meaning: "Toute la puissance reçue, bruit compris.", read: "Utile en 2G. En 4G, regarde plutôt le RSRP et le SINR."),
+        .init(name: "Noise / bruit / interférences", meaning: "Le bruit ambiant et les signaux des autres émetteurs.", read: "Rarement affiché à part. Le SINR montre leur effet."),
+        .init(name: "RSCP / Ec/No / Ec/Io", meaning: "Les mesures de la 3G : puissance (RSCP) et qualité (Ec/No, Ec/Io).", read: "Elles ne se calculent pas comme en 4G, donc ne les compare pas au RSRP."),
+        .init(name: "Band / freq_band_ind", meaning: "Le numéro de bande, par exemple B3 en 4G ou n78 en 5G.", read: "B28 = 700 MHz, B20 = 800 MHz, B3 = 1 800 MHz, n78 = 3,5 GHz."),
+        .init(name: "EARFCN / NR-ARFCN / ARFCN / UARFCN", meaning: "Le numéro du canal radio.", read: "Il donne la fréquence exacte utilisée."),
+        .init(name: "PCI / Physical Cell ID", meaning: "Un identifiant de cellule local, réutilisé un peu partout.", read: "Seul, il ne suffit pas pour retrouver une antenne."),
+        .init(name: "Cell ID / ECI / NCI", meaning: "L’identifiant complet de la cellule : ECI en 4G, NCI en 5G.", read: "Regarde s’il est en décimal ou en hexadécimal. Le décodeur plus haut lit l’ECI."),
+        .init(name: "eNB / eNodeB / gNB / RNC", meaning: "Le numéro de la station chez l’opérateur : eNodeB en 4G, gNodeB en 5G.", read: "Ce n’est pas le numéro ANFR. RNC Mobile peut aider à faire le lien."),
+        .init(name: "MCC / MNC / PLMN", meaning: "Le pays (MCC) et l’opérateur (MNC). Les deux ensemble forment le PLMN.", read: "Pratique pour savoir sur quel réseau tu es vraiment, en itinérance par exemple."),
+        .init(name: "TAC / LAC", meaning: "Une zone qui regroupe plusieurs cellules.", read: "Elle ne donne pas la position d’une antenne."),
+        .init(name: "Bandwidth / largeur de canal", meaning: "La largeur du canal, en MHz.", read: "Plus il est large, plus il y a de capacité, à partager entre tous ceux qui sont connectés."),
+        .init(name: "CA / PCC / SCC / agrégation", meaning: "Plusieurs bandes utilisées en même temps : c’est la 4G+.", read: "PCC est la bande principale, SCC les secondaires."),
+        .init(name: "NSA / SA / EN-DC", meaning: "NSA : la 5G s’appuie sur la 4G. SA : la 5G fonctionne seule.", read: "EN-DC veut dire que tu es connecté en 4G et en 5G à la fois."),
+        .init(name: "CQI / MCS / modulation / rank", meaning: "La qualité du canal et la modulation choisies par le réseau.", read: "Ça change tout le temps. Une modulation haute veut dire une bonne radio."),
+        .init(name: "Timing Advance / TA", meaning: "Un décalage de temps lié à ta distance à l’antenne.", read: "Donne une idée de la distance, mais la conversion en mètres dépend de la technologie."),
+        .init(name: "rx / tx / dl / ul / timestamp", meaning: "rx = réception, tx = émission, dl = descendant, ul = montant.", read: "Regarde le timestamp : certaines valeurs restent figées.")
     ]
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    InfoCard("Ton réseau, en clair.", subtitle: "Un guide à garder à côté de Field Test.") {
-                        Text("Pas besoin de noter toutes les valeurs. Commence par la technologie, puis la puissance et la qualité. Les identifiants servent ensuite à chercher la station.")
+                    InfoCard("Par où commencer") {
+                        Text("Regarde d’abord la technologie, puis la puissance et la qualité. Les identifiants servent à retrouver l’antenne.")
                     }
-                    InfoCard("Ce que peut lire Pylo", subtitle: "L’accès internet et la radio cellulaire sont deux informations différentes.") {
+                    InfoCard("Ce que voit Pylo") {
                         networkInfo("Connexion internet", value: store.device.connection, icon: store.device.connectionIcon)
                         Divider()
                         networkInfo("Technologie cellulaire · 2G à 5G", value: store.device.radioStatus, icon: "simcard")
@@ -50,21 +50,18 @@ struct FieldTestView: View {
                         }
                         DisclosureGroup("Détails de la connexion") {
                             LabeledContent("Accès cellulaire de Pylo", value: store.device.cellularAccess)
-                            Text("Cet état décrit une restriction d’accès pour l’app, pas une garantie de couverture mobile.").font(.caption).foregroundStyle(.secondary)
                             if let ipv4 = store.device.supportsIPv4 { LabeledContent("IPv4 disponible", value: ipv4 ? "Oui" : "Non") }
                             if let ipv6 = store.device.supportsIPv6 { LabeledContent("IPv6 disponible", value: ipv6 ? "Oui" : "Non") }
                             if let dns = store.device.supportsDNS { LabeledContent("DNS disponible", value: dns ? "Oui" : "Non") }
                             LabeledContent("Connexion marquée coûteuse", value: store.device.expensive ? "Oui, par iOS" : "Non signalée comme telle")
-                            Text("IPv4, IPv6 et DNS décrivent le chemin réseau fourni par iOS, sans test de serveur ni mesure du débit. « Coûteuse » est une indication du système, pas le tarif de ton forfait.").font(.caption).foregroundStyle(.secondary)
                         }
                         Divider()
                         networkInfo("Mode données réduites", value: store.device.reducedDataStatus, icon: "arrow.down.circle")
-                        Text("Cet état concerne la connexion internet actuelle, Wi-Fi ou mobile. Il ne mesure pas la qualité du signal.").font(.footnote).foregroundStyle(.secondary)
                         Button("Actualiser les informations", systemImage: "arrow.clockwise") { store.device.refresh() }
                         if let date = store.device.lastUpdated { Text("Dernière lecture : \(date.formatted(date: .omitted, time: .standard))").font(.caption).foregroundStyle(.secondary) }
-                        Text("iOS ne donne pas à Pylo le numéro de téléphone, l’IMEI, la cellule utilisée, les bandes actives ni les mesures RSRP/RSRQ/SINR. Le guide ci-dessous explique comment lire ces mesures dans Field Test.").font(.caption).foregroundStyle(.secondary)
+                        Text("iOS ne laisse pas les apps lire la cellule utilisée ni la qualité du signal. Field Test, si.").font(.caption).foregroundStyle(.secondary)
                     }
-                    InfoCard("Ta position et ton cap", subtitle: "Position recherchée à l’ouverture ou avec le bouton ci-dessous, sans historique de déplacement.") {
+                    InfoCard("Ta position et ton cap") {
                         LabeledContent("Localisation", value: store.location.permission)
                         if let precise = store.location.precisePosition { LabeledContent("Position précise", value: precise ? "Autorisée" : "Approximative") }
                         Button("Lire ma position et mon cap", systemImage: "location.north.circle") { store.location.locate() }
@@ -77,38 +74,35 @@ struct FieldTestView: View {
                         if let accuracy = store.location.headingAccuracy { LabeledContent("Précision du cap", value: "± \(Int(accuracy))°") }
                         if let date = store.location.measuredAt { LabeledContent("Position relevée à", value: date.formatted(date: .omitted, time: .standard)) }
                         if !store.location.status.isEmpty { Text(store.location.status).font(.footnote).foregroundStyle(.secondary) }
-                        Text("L’altitude de l’iPhone n’est pas la hauteur d’un support ANFR. Le cap du téléphone et la direction du déplacement sont aussi deux choses différentes. Les valeurs incertaines ou indisponibles ne sont pas inventées.").font(.caption).foregroundStyle(.secondary)
                     }
                     InfoCard("1 · Ouvrir Field Test") {
                         Text("Dans Téléphone → Clavier, saisis ce code puis appuie sur Appeler.")
                         HStack { Text(verbatim: "*3001#12345#*").font(.title3.monospaced()); Spacer(); Button("Copier") { UIPasteboard.general.string = "*3001#12345#*" } }
-                        Text("Les menus varient selon l’iPhone, le modem, iOS et l’opérateur. Certaines rubriques peuvent manquer ; Pylo ne peut pas ouvrir directement ce menu à ta place.").font(.caption).foregroundStyle(.secondary)
+                        Text("Les menus changent selon l’iPhone et la version d’iOS.").font(.caption).foregroundStyle(.secondary)
                     }
                     InfoCard("2 · Lire la puissance et la qualité") {
                         Label("Puissance → RSRP", systemImage: "antenna.radiowaves.left.and.right").font(.headline)
-                        Text("Pense au volume d’une voix : plus le signal est fort, plus il est facile à entendre.")
+                        Text("C’est le volume : plus il est fort, mieux tu entends.")
                         Label("Qualité → RSRQ et SINR", systemImage: "waveform").font(.headline)
-                        Text("Pense à une conversation dans une salle bruyante : une voix forte peut rester difficile à comprendre si les autres parlent en même temps.")
+                        Text("C’est la clarté : même une voix forte se comprend mal dans une salle bruyante.")
                         signalScale("RSRP · dBm", values: ["≥ −80 : fort", "−90 à −80 : bon", "−100 à −90 : moyen", "< −100 : faible"])
                         signalScale("SINR · dB", values: ["≥ 20 : favorable", "13 à 20 : bon", "0 à 13 : perturbé", "< 0 : difficile"])
-                        Text("Repères indicatifs LTE/NR, inspirés des recommandations Teltonika pour leurs modems ; pas des seuils Apple ni une garantie de débit. Lis toujours aussi le RSRQ, le contexte et le type exact de mesure.").font(.caption).foregroundStyle(.secondary)
-                        Link("Lire les repères de mesure", destination: URL(string: "https://wiki.teltonika-networks.com/view/Mobile_Signal_Strength_Recommendations")!).font(.caption)
+                        Text("Repères indicatifs pour la 4G et la 5G, d’après Teltonika.").font(.caption).foregroundStyle(.secondary)
+                        Link("Voir les repères de Teltonika", destination: URL(string: "https://wiki.teltonika-networks.com/view/Mobile_Signal_Strength_Recommendations")!).font(.caption)
                     }
                     InfoCard("3 · Retrouver l’antenne utilisée") {
-                        step("1", "Repère la cellule servante", "Dans Serving Cell Info, relève le réseau (MCC/MNC), la technologie, la bande ou le canal, et l’identifiant complet de cellule. Le PCI seul ne suffit pas.")
-                        step("2", "Pour la 4G, retrouve l’eNodeB", "Si Field Test donne un ECI LTE, le calcul ci-dessous sépare l’eNodeB de l’identifiant local de cellule. Ce n’est pas l’identifiant ANFR.")
-                        step("3", "Cherche une correspondance documentée", "Pour Free Mobile, RNC Mobile peut aider avec ses identifications communautaires. Vérifie la technologie, les identifiants et la zone, puis compare la position et les bandes dans Pylo.")
-                        step("4", "Garde un doute si les données manquent", "La station la plus proche n’est pas forcément la bonne. Sans correspondance vérifiée, Pylo ne peut pas confirmer la station connectée. Les rôles des cellules LTE et NR peuvent aussi différer en NSA.")
+                        step("1", "Repère ta cellule", "Dans Serving Cell Info, note le MCC/MNC, la bande et l’identifiant de cellule.")
+                        step("2", "En 4G, trouve l’eNodeB", "Colle l’ECI ci-dessous pour obtenir le numéro d’eNodeB.")
+                        step("3", "Cherche le site", "Pour Free Mobile, RNC Mobile recense beaucoup de sites. Compare ensuite avec la carte de Pylo.")
+                        step("4", "Méfie-toi de la plus proche", "Ce n’est pas forcément celle à laquelle tu es connecté.")
                         TextField("ECI LTE en décimal ou 0x…", text: $eci).textFieldStyle(.roundedBorder).autocorrectionDisabled().textInputAutocapitalization(.never)
                         if let value = decodedECI {
                             LabeledContent("eNodeB", value: String(Radio.enodeB(value)))
                             LabeledContent("Cellule locale (8 bits)", value: String(Radio.sector(value)))
-                            Text("La valeur locale ne désigne pas universellement un panneau ou une direction.").font(.caption).foregroundStyle(.secondary)
-                        } else if !eci.isEmpty { Text("Il faut un ECI LTE valide entre 0 et 268 435 455. Ne colle pas un NCI 5G ici.").font(.caption).foregroundStyle(.orange) }
+                        } else if !eci.isEmpty { Text("ECI invalide : il doit être entre 0 et 268 435 455 (pas un NCI 5G).").font(.caption).foregroundStyle(.orange) }
                         Link("Consulter RNC Mobile", destination: URL(string: "https://www.rncmobile.net/")!)
-                        Text("Lien vers un projet indépendant. Aucun partenariat ni accès à leur base n’est annoncé à ce stade.").font(.caption).foregroundStyle(.secondary)
                     }
-                    InfoCard("Le dictionnaire Field Test", subtitle: "Les champs courants, traduits simplement. Les noms exacts peuvent varier.") {
+                    InfoCard("Le dictionnaire Field Test", subtitle: "Les champs les plus courants.") {
                         TextField("Chercher : PCI, bruit, LTE…", text: $search).textFieldStyle(.roundedBorder)
                         ForEach(terms.filter { search.isEmpty || ($0.name + $0.meaning + $0.read).localizedCaseInsensitiveContains(search) }) { term in
                             DisclosureGroup { VStack(alignment: .leading, spacing: 10) { Text(term.meaning).font(.subheadline); Text(term.read).font(.subheadline).foregroundStyle(.secondary) }.padding(.vertical,8) } label: { Text(term.name).font(.subheadline.bold()).foregroundStyle(.primary) }
