@@ -43,7 +43,7 @@ jobs:
         if: steps.catalog.outputs.changed == 'true'
         run: |
           PREVIOUS_URL="$(jq -r .url data/manifest.json)"
-          curl --fail --location --retry 3 "$PREVIOUS_URL" -o previous/antennas.sqlite.gz
+          curl --fail --location --retry 5 --retry-delay 15 --retry-all-errors "$PREVIOUS_URL" -o previous/antennas.sqlite.gz
           gzip -dc previous/antennas.sqlite.gz > previous/antennas.sqlite
           if swift run -c release anfr-import --references output/references.json; then
             export PYLO_REFERENCES="$PWD/output/references.json"
