@@ -91,7 +91,8 @@ enum AlertChecker {
     private static func update(topic: String, wanted: Bool, key: String) {
         guard UserDefaults.standard.bool(forKey: key) != wanted else { return }
         if wanted {
-            Messaging.messaging().subscribe(toTopic: topic) { error in
+            // @Sendable : Firebase peut rappeler depuis un autre fil que le fil principal.
+            Messaging.messaging().subscribe(toTopic: topic) { @Sendable error in
                 if error == nil { UserDefaults.standard.set(true, forKey: key) }
             }
         } else {
