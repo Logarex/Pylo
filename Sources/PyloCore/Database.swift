@@ -70,7 +70,7 @@ public final class AntennaDatabase {
         }
         return result.sorted { a,b in a.operatorName == b.operatorName ? a.id < b.id : a.operatorName < b.operatorName }
     }
-    private func rows(_ sql: String) throws -> [[String]] {
+    func rows(_ sql: String) throws -> [[String]] {
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { throw DatabaseError.sqlite("Cette base doit être mise à jour pour afficher ces informations.") }
         defer { sqlite3_finalize(stmt) }

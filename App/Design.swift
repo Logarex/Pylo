@@ -126,15 +126,3 @@ struct RadioLine: Identifiable {
     }
     deinit { radioTask?.cancel(); monitor.cancel() }
 }
-func operatorDisplayName(_ name: String) -> String {
-    switch name {
-    case "SFR", "SRR", "SPT", "UTS Caraibes": return name
-    case "FREE MOBILE": return "Free Mobile"
-    case "BOUYGUES TELECOM": return "Bouygues Telecom"
-    case "ORANGE": return "Orange"
-    case "PMT-VODAFONE": return "PMT-Vodafone"
-    case "TELCO OI": return "Telco OI"
-    case "VITI SAS": return "Viti SAS"
-    default: return name.capitalized
-    }
-}

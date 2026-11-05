@@ -24,7 +24,7 @@ struct StationDetail: View {
             ScrollView {
                 VStack(spacing: 16) {
                     hero
-                    InfoCard("Les réseaux de cette station") {
+                    InfoCard("Réseaux") {
                         if let error { Text(error).foregroundStyle(.secondary) }
                         ForEach(["2G","3G","4G","5G"], id: \.self) { g in
                             let group = systems.filter { $0.generation == g }
@@ -45,7 +45,7 @@ struct StationDetail: View {
                         }
                         Text("Les nombres sont les fréquences en MHz.").font(.footnote).foregroundStyle(.secondary)
                     }
-                    InfoCard("Dans quelle direction ?") {
+                    InfoCard("Orientation") {
                         HStack(spacing: 22) {
                             CompassDiagram(azimuths: azimuths, bearing: bearing, heading: store.location.headingReference == "nord vrai" ? store.location.heading : nil, color: color).frame(width: 130, height: 150)
                             VStack(alignment: .leading, spacing: 9) {
@@ -58,7 +58,7 @@ struct StationDetail: View {
                         Button("Utiliser ma position et la boussole", systemImage: "location.north.circle") { store.location.locate() }
                         if !store.location.status.isEmpty { Text(store.location.status).font(.caption).foregroundStyle(.orange) }
                     }
-                    InfoCard("Et la réception chez moi ?") {
+                    InfoCard("Distance") {
                         if let distance {
                             Label(distance.formatted(.number.precision(.fractionLength(0))) + " m à vol d’oiseau", systemImage: "point.topleft.down.to.point.bottomright.curvepath").font(.headline)
                             if let accuracy = store.location.accuracy { Text("Précision de ta position : environ \(Int(max(0,accuracy))) m.").font(.caption).foregroundStyle(.secondary) }
@@ -72,7 +72,7 @@ struct StationDetail: View {
                         Text("Pour savoir ce que capte vraiment ton iPhone, regarde Field Test.").font(.footnote).foregroundStyle(.secondary)
                         NavigationLink { FieldTestView() } label: { Label("Comprendre mon signal", systemImage: "waveform.path.ecg") }
                     }
-                    InfoCard("Les dates de la station") {
+                    InfoCard("Dates") {
                         if let dates {
                             LabeledContent("Implantation", value: dates.implantation.isEmpty ? "Non renseignée" : formattedDate(dates.implantation))
                             LabeledContent("Mise en service", value: dates.service.isEmpty ? "Non renseignée" : formattedDate(dates.service))
@@ -83,7 +83,7 @@ struct StationDetail: View {
                             Text("Pas de dates pour cette station.").font(.subheadline).foregroundStyle(.secondary)
                         }
                     }
-                    InfoCard("Le site en détail") {
+                    InfoCard("Supports") {
                         LabeledContent("Station ANFR", value: station.id)
                         ForEach(supports) { support in
                             VStack(alignment: .leading, spacing: 7) {
@@ -97,7 +97,7 @@ struct StationDetail: View {
                         Text("La hauteur est celle du support, pas des panneaux. S’il y a plusieurs supports, la carte utilise le premier.").font(.footnote).foregroundStyle(.secondary)
                     }
                     if !sourceDetails.isEmpty {
-                        InfoCard("Ce que déclare l’ANFR") {
+                        InfoCard("Déclaration ANFR") {
                             ForEach(sourceDetails) { source in
                                 VStack(alignment: .leading, spacing: 12) {
                                     Text("Support \(source.id)").font(.headline)
@@ -129,7 +129,7 @@ struct StationDetail: View {
                             }
                         }
                     }
-                    InfoCard("Garder et partager") {
+                    InfoCard("Favoris et partage") {
                         Button { store.toggle(station) } label: { Label(store.favorites.contains(station.id) ? "Retirer des favoris" : "Garder en favori", systemImage: store.favorites.contains(station.id) ? "star.fill" : "star") }
                         Button("Itinéraire dans Plans", systemImage: "arrow.triangle.turn.up.right.diamond") {
                             let item = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: station.latitude, longitude: station.longitude)))

@@ -8,7 +8,7 @@ Il faut **Xcode 26 ou plus récent** et **iOS 18 minimum**.
 2. Sélectionne le schéma **Pylo**, puis un simulateur iPhone.
 3. Pour ton iPhone, choisis ton équipe dans **Signing & Capabilities**.
 
-Aucun paquet tiers à installer. Tout est écrit en Swift, avec SwiftUI, MapKit, Swift Charts et SQLite.
+Une seule dépendance, FirebaseMessaging (Swift Package Manager, résolue automatiquement par Xcode), pour les notifications instantanées. Le reste est écrit en Swift, avec SwiftUI, MapKit, Swift Charts et SQLite.
 
 | Dossier | Contenu |
 | --- | --- |
@@ -35,7 +35,7 @@ Dans GitHub Actions, activer les notifications d’échec pour surveiller les ch
 
 ## Mise à jour dans l’app
 
-Le contrôle automatique a lieu à l’ouverture/retour dans l’app ou au rétablissement du Wi-Fi, au maximum une fois par 24 h après une vérification réussie. Il n’y a pas de promesse de réveil en arrière-plan d’une application fermée. Les téléchargements de bases sont limités au Wi-Fi hors mode données réduites. Le bouton Vérifier maintenant permet une lecture du manifeste à la demande.
+Le contrôle automatique a lieu à l’ouverture/retour dans l’app ou au rétablissement du Wi-Fi, au maximum une fois par 24 h après une vérification réussie. La base elle-même n’est jamais téléchargée en arrière-plan : seules les notifications le sont (voir plus bas). Les téléchargements de bases sont limités au Wi-Fi hors mode données réduites. Le bouton Vérifier maintenant permet une lecture du manifeste à la demande.
 
 DataUpdates contrôle le schéma, l’hôte et le chemin du dépôt, la taille compressée, le SHA-256, la taille décompressée, l’intégrité SQLite et la date source. La base est préparée à côté de la destination puis remplacée atomiquement. Une erreur garde la copie précédente. Les favoris sont dans un stockage distinct.
 
@@ -43,6 +43,38 @@ Test complet de la publication publique sur Mac :
 
 ```sh
 swift run anfr-import --verify-update /tmp/pylo-update-check.sqlite
+```
+
+## Notifications
+
+Deux chemins, gratuits tous les deux. La position, les zones et les favoris ne quittent jamais l’iPhone.
+
+**Publication.** Quand `PYLO_PREVIOUS_DATABASE` est fourni, l’import compare la nouvelle base à la précédente (`AntennaDatabase.changeReport`) et écrit `changes.json` : pour chaque station ajoutée, retirée ou modifiée, l’opérateur, la position, l’adresse, les systèmes ajoutés ou retirés, les changements de statut et les codes `orientation`, `height`, `location`, `supports`. Statuts, hauteurs (`30` = `30,0`) et azimuts sont normalisés pour éviter les faux changements dus à l’ordre des lignes CSV. Le fichier va dans la même Release que la base, et le manifeste le référence dans `changes` (URL, SHA-256, taille). Le champ est facultatif : les anciennes versions de l’app l’ignorent. Ordre de grandeur au 5 novembre 2026 : 7 500 stations, 2 Mo, 4 s de calcul.
+
+**Push instantané (Firebase Cloud Messaging, offre gratuite).** Après la mise en ligne du manifeste, l’étape « Prévenir les iPhone » du workflow envoie deux messages à des sujets FCM, sans liste d’appareils à stocker :
+- `anfr-data` : alerte visible, même texte pour tout le monde, généré par `anfr-import --push-message`.
+- `anfr-changes` : signal silencieux (`content-available`, priorité 5). iOS réveille Pylo, qui télécharge `changes.json` et construit lui-même les alertes de zones et de favoris.
+
+L’étape s’authentifie avec le compte de service du secret `FIREBASE_SERVICE_ACCOUNT` (JWT signé avec `openssl`, aucun outil à installer). Sans ce secret, elle s’arrête proprement et les iPhone voient la publication par l’actualisation en arrière-plan. Une erreur d’envoi n’annule pas la publication.
+
+**Côté app.** `PushService` (dans `App/Alerts.swift`) ne démarre Firebase que si `App/GoogleService-Info.plist` est présent. L’app s’abonne à `anfr-data` si l’alerte de données est activée, à `anfr-changes` si les favoris ou une zone sont suivis, et se désabonne sinon. Le swizzling Firebase est coupé (`FirebaseAppDelegateProxyEnabled` = NO) : `AppDelegate` transmet lui-même le jeton APNs.
+
+`AlertChecker.run()` est le seul point d’entrée : signal silencieux, `BGAppRefreshTask` (`org.epimac.pylo.alerts`, toutes les 4 h au plus tôt, en secours), lancement et retour au premier plan (une fois par heure au plus). Il s’arrête si `sourceDate` n’est pas plus récente que `alertLastSourceDate`, télécharge `changes.json` si besoin (taille + SHA-256 + date vérifiées), puis `AlertDigest` construit au plus quatre notifications : données ANFR (seulement si l’appareil n’est pas abonné à `anfr-data`), favoris, nouvelles antennes, changements. Une station favorite n’est pas répétée dans les alertes de zone. Pour chaque zone, `newAntennasKM` et `changesKM` sont facultatifs ; une station est rattachée à la zone la plus proche qui la couvre. En cas d’erreur réseau, la date n’avance pas et le prochain réveil réessaie.
+
+Limites : iOS peut retarder un signal silencieux (batterie faible, mode économie d’énergie) et ne réveille pas une app fermée de force ; l’alerte visible `anfr-data`, elle, arrive toujours. `changes.json` décrit seulement l’écart avec la publication précédente.
+
+**Mise en place de Firebase (une fois).** Version détaillée, clic par clic : [NOTIFICATIONS-PAS-A-PAS.md](NOTIFICATIONS-PAS-A-PAS.md).
+1. Sur console.firebase.google.com, créer un projet (offre Spark, gratuite, sans Analytics), puis ajouter une app iOS avec le bundle `org.epimac.pylo`.
+2. Télécharger `GoogleService-Info.plist` et le placer dans `App/`. La phase de build « Firebase config » le copie dans l’app s’il existe (sinon, simple avertissement). Il peut être versionné : ce n’est pas un secret.
+3. Sur developer.apple.com, créer une clé APNs (Keys → +, Apple Push Notifications service), puis l’importer dans Firebase (Paramètres du projet → Cloud Messaging → Configuration de l’app Apple) avec le Key ID et le Team ID.
+4. Dans Xcode, onglet Signing & Capabilities, vérifier que Push Notifications et Background Modes (Background fetch, Remote notifications) apparaissent bien. `App/Pylo.entitlements` les déclare déjà.
+5. Firebase → Paramètres du projet → Comptes de service → Générer une nouvelle clé privée. Coller le JSON complet dans un secret GitHub `FIREBASE_SERVICE_ACCOUNT` (Settings → Secrets and variables → Actions).
+6. Dans App Store Connect, mettre à jour la confidentialité de l’app : Identifiants → Identifiant de l’appareil, utilisé pour les fonctionnalités de l’app, non lié à l’identité, sans suivi.
+
+**Tester.** Pour rejouer une alerte, remettre `alertLastSourceDate` à une date antérieure. Une alerte visible se simule avec `xcrun simctl push <appareil> org.epimac.pylo fichier.apns`. Le simulateur refuse les pushs purement silencieux : tester le signal `anfr-changes` sur un iPhone, ou simuler le réveil en arrière-plan depuis la console LLDB :
+
+```
+e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWithIdentifier:@"org.epimac.pylo.alerts"]
 ```
 
 ## Source et copie embarquée

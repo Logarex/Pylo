@@ -40,7 +40,7 @@ struct FieldTestView: View {
                     InfoCard("Par où commencer") {
                         Text("Regarde d’abord la technologie, puis la puissance et la qualité. Les identifiants servent à retrouver l’antenne.")
                     }
-                    InfoCard("Ce que voit Pylo") {
+                    InfoCard("Ta connexion") {
                         networkInfo("Connexion internet", value: store.device.connection, icon: store.device.connectionIcon)
                         Divider()
                         networkInfo("Technologie cellulaire · 2G à 5G", value: store.device.radioStatus, icon: "simcard")
@@ -58,7 +58,7 @@ struct FieldTestView: View {
                         Divider()
                         networkInfo("Mode données réduites", value: store.device.reducedDataStatus, icon: "arrow.down.circle")
                         Button("Actualiser les informations", systemImage: "arrow.clockwise") { store.device.refresh() }
-                        if let date = store.device.lastUpdated { Text("Dernière lecture : \(date.formatted(date: .omitted, time: .standard))").font(.caption).foregroundStyle(.secondary) }
+                        if let date = store.device.lastUpdated { Text("Dernière lecture : \(date.formatted(Date.FormatStyle(date: .omitted, time: .standard).locale(Locale(identifier: "fr_FR"))))").font(.caption).foregroundStyle(.secondary) }
                         Text("iOS ne laisse pas les apps lire la cellule utilisée ni la qualité du signal. Field Test, si.").font(.caption).foregroundStyle(.secondary)
                     }
                     InfoCard("Ta position et ton cap") {
@@ -72,7 +72,7 @@ struct FieldTestView: View {
                         if let course = store.location.course { LabeledContent("Direction du déplacement", value: "\(Int(course))°") }
                         if let heading = store.location.heading { LabeledContent("Cap de l’iPhone", value: "\(Int(heading))° · \(store.location.headingReference)") }
                         if let accuracy = store.location.headingAccuracy { LabeledContent("Précision du cap", value: "± \(Int(accuracy))°") }
-                        if let date = store.location.measuredAt { LabeledContent("Position relevée à", value: date.formatted(date: .omitted, time: .standard)) }
+                        if let date = store.location.measuredAt { LabeledContent("Position relevée à", value: date.formatted(Date.FormatStyle(date: .omitted, time: .standard).locale(Locale(identifier: "fr_FR")))) }
                         if !store.location.status.isEmpty { Text(store.location.status).font(.footnote).foregroundStyle(.secondary) }
                     }
                     InfoCard("1 · Ouvrir Field Test") {
@@ -82,9 +82,9 @@ struct FieldTestView: View {
                     }
                     InfoCard("2 · Lire la puissance et la qualité") {
                         Label("Puissance → RSRP", systemImage: "antenna.radiowaves.left.and.right").font(.headline)
-                        Text("C’est le volume : plus il est fort, mieux tu entends.")
+                        Text("La puissance reçue, en dBm. Plus elle est proche de 0, plus le signal est fort.")
                         Label("Qualité → RSRQ et SINR", systemImage: "waveform").font(.headline)
-                        Text("C’est la clarté : même une voix forte se comprend mal dans une salle bruyante.")
+                        Text("La qualité du signal. Un signal fort peut quand même être brouillé par les interférences.")
                         signalScale("RSRP · dBm", values: ["≥ −80 : fort", "−90 à −80 : bon", "−100 à −90 : moyen", "< −100 : faible"])
                         signalScale("SINR · dB", values: ["≥ 20 : favorable", "13 à 20 : bon", "0 à 13 : perturbé", "< 0 : difficile"])
                         Text("Repères indicatifs pour la 4G et la 5G, d’après Teltonika.").font(.caption).foregroundStyle(.secondary)

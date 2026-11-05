@@ -23,6 +23,7 @@ Je suis étudiant et je voulais comprendre les antennes autour de moi, et ce que
 - **Des favoris** à partager ou à ouvrir dans Plans.
 - **Un guide Field Test** pour ouvrir le menu caché de l’iPhone (`*3001#12345#*`) et comprendre ce qu’il affiche.
 - **Des statistiques** sur toute la France, avec ce qui a changé depuis la dernière publication.
+- **Des notifications**, si tu les actives : nouvelles données ANFR, nouvelles antennes ou changements autour des lieux que tu choisis (un rayon pour chaque), changements sur tes stations favorites. Elles arrivent même quand l’app est fermée.
 
 Les données restent consultables hors ligne. Pylo les met à jour tout seul en Wi-Fi, au plus une fois par jour, à partir des publications de l’ANFR.
 
@@ -32,7 +33,7 @@ Les flèches montrent où pointent les antennes, pas jusqu’où elles portent. 
 
 ## Vie privée
 
-Pas de compte, pas de pub, pas de suivi. Tes favoris et ta position restent sur ton iPhone. Les recherches et les itinéraires passent par Apple Plans, et la base d’antennes se télécharge depuis GitHub.
+Pas de compte, pas de pub, pas de suivi. Tes favoris, ta position et tes zones d’alerte restent sur ton iPhone : pour les notifications, Pylo télécharge la liste des changements de toute la France et fait le tri lui-même. Les notifications instantanées passent par Firebase Cloud Messaging (Google), qui ne reçoit qu’un identifiant technique de notification.
 
 ## Contact
 
