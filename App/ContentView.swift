@@ -4,9 +4,7 @@ import MapKit
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(AppStore.self) private var store
-    @State private var inbox = AlertInbox.shared
     var body: some View {
-        @Bindable var inbox = inbox
         Group {
         if store.ready {
         TabView {
@@ -17,17 +15,8 @@ struct ContentView: View {
             Tab("Le projet", systemImage: "info.circle") { DataView() }
         }
         } else { ProgressView("Préparation des données ANFR…").padding() }
-        }.task { await store.prepare(); store.locateOnMap(); await store.checkDataUpdates(automatic: true); await store.checkAlerts() }
-        .onChange(of: scenePhase) {
-            if scenePhase == .active { store.location.resumeIfNeeded(); Task { await store.checkDataUpdates(automatic: true); await store.checkAlerts() } }
-            else { store.location.suspend() }
-            if scenePhase == .background { AlertChecker.schedule() }
-        }
-        .sheet(isPresented: $inbox.showRecent) {
-            NavigationStack {
-                RecentAlertsView().toolbar { ToolbarItem(placement: .confirmationAction) { Button("OK") { inbox.showRecent = false } } }
-            }
-        }
+        }.task { await store.prepare(); store.locateOnMap(); await store.checkDataUpdates(automatic: true) }
+        .onChange(of: scenePhase) { if scenePhase == .active { store.location.resumeIfNeeded(); Task { await store.checkDataUpdates(automatic: true) } } else { store.location.suspend() } }
         .onChange(of: store.device.connection) { Task { await store.checkDataUpdates(automatic: true) } }
     }
 }
