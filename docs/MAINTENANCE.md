@@ -77,6 +77,12 @@ Limites : iOS peut retarder un signal silencieux (batterie faible, mode économi
 e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWithIdentifier:@"org.epimac.pylo.alerts"]
 ```
 
+## Robot de surveillance (Cloudflare Workers)
+
+Le cron GitHub (`23 7 * * *`) démarre en pratique avec 7 à 10 heures de retard. `watcher/` est un Worker Cloudflare gratuit déclenché chaque minute : il recalcule la version du catalogue comme `anfr-import --catalog`, la compare à `sourceVersion` du manifeste public et, si elles diffèrent, lance `anfr.yml` par l’API GitHub (`workflow_dispatch` sur `main`). Il ne relance pas si la dernière exécution est en cours ou date de moins de 20 minutes, ce qui couvre aussi les nouvelles tentatives après un échec. Le secret `GITHUB_TOKEN` du Worker est un jeton à granularité fine limité à `Logarex/Pylo`, permission Actions en lecture et écriture. Le cron GitHub reste en place comme filet de sécurité.
+
+`node watcher/test.mjs` vérifie, sans rien lancer, que le Worker calcule la même version que le manifeste publié. Ouvrir l’URL du Worker affiche le même état. Mise en place : [NOTIFICATIONS-PAS-A-PAS.md](NOTIFICATIONS-PAS-A-PAS.md), étape 8.
+
 ## Source et copie embarquée
 
 Les données incluent la 2G. Conserver les supports distincts et fusionner les azimuts lorsque la même station/bande apparaît plusieurs fois. Les dates `emr_dt` ne sont pas des dates d’ajout au catalogue. Une base de schéma 1, qui excluait la 2G, n’est pas comparable à une base de schéma 2 pour compter les apparitions.

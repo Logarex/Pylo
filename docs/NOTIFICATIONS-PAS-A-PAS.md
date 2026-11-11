@@ -82,4 +82,48 @@ Dans App Store Connect → ton app → **Confidentialité de l’app** → **Mod
 
 ## Ensuite, plus rien à faire
 
-À chaque publication de l’ANFR, GitHub envoie les notifications tout seul. Dans l’onglet **Actions** du dépôt, l’étape « Prévenir les iPhone » indique si l’envoi a marché.
+À chaque publication de l’ANFR, le robot lance GitHub, qui envoie les notifications tout seul. Dans l’onglet **Actions** du dépôt, l’étape « Prévenir les iPhone » indique si l’envoi a marché.
+
+---
+
+## Étape 8 · Le robot qui surveille l’ANFR chaque minute (15 min)
+
+Sans lui, GitHub vérifie l’ANFR une fois par jour, souvent avec plusieurs heures de retard. Avec lui, la publication est repérée en une minute environ, et la notification part 3 à 5 minutes après la publication de l’ANFR, le temps de préparer la base.
+
+Le robot tourne chez Cloudflare, gratuitement. Son code est dans le dossier `watcher/`.
+
+**8.1 · Créer un compte Cloudflare**
+Va sur https://dash.cloudflare.com/sign-up et crée un compte gratuit. Aucune carte bancaire n’est demandée pour les Workers.
+
+**8.2 · Créer une clé GitHub qui ne sert qu’à lancer le workflow**
+1. Va sur https://github.com/settings/personal-access-tokens/new
+2. Nom : `Pylo robot ANFR`. Expiration : 1 an.
+3. **Repository access** → **Only select repositories** → `Logarex/Pylo`.
+4. **Permissions** → **Repository permissions** → **Actions** → **Read and write**. Ne touche à rien d’autre.
+5. **Generate token**, puis copie la clé (elle commence par `github_pat_`). Garde l’onglet ouvert, elle ne s’affiche qu’une fois.
+
+**8.3 · Mettre le robot en ligne** (dans le Terminal, une commande à la fois)
+
+```bash
+cd /Users/louischabert/Documents/ChatGPT/Pylo/watcher
+```
+
+```bash
+npx wrangler login
+```
+Une page Cloudflare s’ouvre : clique sur **Allow**.
+
+```bash
+npx wrangler deploy
+```
+À la fin, une adresse s’affiche, du type `https://pylo-anfr-watcher.xxxx.workers.dev`.
+
+```bash
+npx wrangler secret put GITHUB_TOKEN
+```
+Colle la clé GitHub de l’étape 8.2, puis Entrée. Tu peux ensuite fermer l’onglet GitHub.
+
+**8.4 · Vérifier**
+Ouvre l’adresse `…workers.dev` dans ton navigateur. Tu dois voir `"a_jour": true` : Pylo a les mêmes données que data.gouv. Quand l’ANFR publiera, le robot lancera GitHub tout seul dans la minute.
+
+Dans Cloudflare → **Workers & Pages** → `pylo-anfr-watcher` → **Logs**, chaque minute affiche `rien`, `attente` ou `lancé`.
