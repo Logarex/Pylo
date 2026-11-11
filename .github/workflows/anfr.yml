@@ -56,16 +56,14 @@ jobs:
           gzip -c output/antennas.sqlite > output/antennas.sqlite.gz
           TAG="anfr-$(date -u +%Y-%m-%d)-${GITHUB_RUN_ID}"
           echo "DATA_TAG=$TAG" >> "$GITHUB_ENV"
-          swift run -c release anfr-import --manifest output/antennas.sqlite.gz output/antennas.sqlite output/catalog.json "https://github.com/Logarex/Pylo/releases/download/$TAG/antennas.sqlite.gz" output/manifest.json output/changes.json
-          if [ -f output/changes.json ]; then shasum -a 256 output/antennas.sqlite.gz output/changes.json > output/SHA256SUMS; else shasum -a 256 output/antennas.sqlite.gz > output/SHA256SUMS; fi
+          swift run -c release anfr-import --manifest output/antennas.sqlite.gz output/antennas.sqlite output/catalog.json "https://github.com/Logarex/Pylo/releases/download/$TAG/antennas.sqlite.gz" output/manifest.json
+          shasum -a 256 output/antennas.sqlite.gz > output/SHA256SUMS
       - name: Publier les fichiers immuables
         if: steps.catalog.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          FILES=(output/antennas.sqlite.gz output/source.json output/catalog.json output/dates-source.json output/manifest.json output/quality.json output/SHA256SUMS)
-          if [ -f output/changes.json ]; then FILES+=(output/changes.json); fi
-          gh release create "$DATA_TAG" "${FILES[@]}" --latest=false --title "Antennes ANFR · $(date -u +%Y-%m-%d)" --notes 'Données ANFR validées, Licence Ouverte 2.0. Pylo télécharge automatiquement cette base en Wi-Fi. Publication du manifeste seulement après la mise en ligne des fichiers.'
+          gh release create "$DATA_TAG" output/antennas.sqlite.gz output/source.json output/catalog.json output/dates-source.json output/manifest.json output/quality.json output/SHA256SUMS --latest=false --title "Antennes ANFR · $(date -u +%Y-%m-%d)" --notes 'Données ANFR validées, Licence Ouverte 2.0. Pylo télécharge automatiquement cette base en Wi-Fi. Publication du manifeste seulement après la mise en ligne des fichiers.'
       - name: Activer la mise à jour pour les applications
         if: steps.catalog.outputs.changed == 'true'
         env:
@@ -76,38 +74,6 @@ jobs:
           jq -n --arg message 'Actualiser la version publique des données ANFR [skip ci]' --arg content "$CONTENT" --arg sha "$CURRENT_SHA" '{message:$message,content:$content,sha:$sha,branch:"main"}' > output/manifest-request.json
           gh api --method PUT repos/Logarex/Pylo/contents/data/manifest.json --input output/manifest-request.json --silent
           echo 'Nouvelle base ANFR publiée ; les applications peuvent la récupérer en Wi-Fi.' >> "$GITHUB_STEP_SUMMARY"
-      - name: Prévenir les iPhone (Firebase Cloud Messaging)
-        if: steps.catalog.outputs.changed == 'true'
-        continue-on-error: true
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: |
-          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
-            echo 'Secret FIREBASE_SERVICE_ACCOUNT absent : pas de notification instantanée, les iPhone verront la publication en arrière-plan.' >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          swift run -c release anfr-import --push-message output/manifest.json output/changes.json output/push.json
-          KEY="$RUNNER_TEMP/fcm.pem"
-          trap 'rm -f "$KEY"' EXIT
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" | jq -r .private_key > "$KEY"
-          PROJECT="$(printf '%s' "$FIREBASE_SERVICE_ACCOUNT" | jq -r .project_id)"
-          EMAIL="$(printf '%s' "$FIREBASE_SERVICE_ACCOUNT" | jq -r .client_email)"
-          b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
-          NOW="$(date +%s)"
-          HEADER="$(printf '{"alg":"RS256","typ":"JWT"}' | b64url)"
-          CLAIMS="$(jq -cn --arg iss "$EMAIL" --argjson iat "$NOW" '{iss:$iss,scope:"https://www.googleapis.com/auth/firebase.messaging",aud:"https://oauth2.googleapis.com/token",iat:$iat,exp:($iat+600)}' | b64url)"
-          SIGNATURE="$(printf '%s.%s' "$HEADER" "$CLAIMS" | openssl dgst -sha256 -sign "$KEY" | b64url)"
-          TOKEN="$(curl --fail --silent --show-error -d grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer -d assertion="$HEADER.$CLAIMS.$SIGNATURE" https://oauth2.googleapis.com/token | jq -r .access_token)"
-          echo "::add-mask::$TOKEN"
-          send() {
-            curl --fail --silent --show-error --retry 3 -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-              "https://fcm.googleapis.com/v1/projects/$PROJECT/messages:send" -d "$1" > /dev/null
-          }
-          # Alerte visible, même texte pour tout le monde.
-          send "$(jq -c '{message:{topic:"anfr-data",notification:{title:.title,body:.body},data:{category:"data",sourceDate:.sourceDate},apns:{headers:{"apns-collapse-id":(.sourceDate+"-data")},payload:{aps:{sound:"default","thread-id":"data"}}}}}' output/push.json)"
-          # Signal silencieux : chaque iPhone télécharge changes.json et trie ses zones et favoris lui-même.
-          send "$(jq -c '{message:{topic:"anfr-changes",data:{kind:"changes",sourceDate:.sourceDate},apns:{headers:{"apns-priority":"5","apns-push-type":"background"},payload:{aps:{"content-available":1}}}}}' output/push.json)"
-          echo 'Notifications envoyées aux sujets anfr-data et anfr-changes.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: steps.catalog.outputs.changed == 'true'
         with:
