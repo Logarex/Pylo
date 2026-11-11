@@ -198,4 +198,70 @@ final class PyloCoreTests: XCTestCase {
         XCTAssertNil(MapViewport(values: [Double.nan, 2, 1, 1]))
     }
     func testECI() { XCTAssertEqual(Radio.enodeB(25601),100); XCTAssertEqual(Radio.sector(25601),1) }
+    func testChangeReportDetectsAddedRemovedAndModifiedStations() throws {
+        let previous = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let current = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: previous); try? FileManager.default.removeItem(at: current) }
+        let old = try AntennaDatabase(url: previous, writable: true); try old.prepareImport()
+        try old.insert(id: "kept", operatorName: "ORANGE", lat: 45.76, lon: 4.83, address: "", system: "LTE 800", status: "Projet approuvé", updated: "2026-10-01", supportID: "1", height: "30", azimuths: "0|120")
+        try old.insert(id: "kept", operatorName: "ORANGE", lat: 45.76, lon: 4.83, address: "", system: "UMTS 900", status: "En service", updated: "2026-10-01", supportID: "1", height: "30", azimuths: "0|120")
+        try old.insert(id: "same", operatorName: "SFR", lat: 45, lon: 4, address: "", system: "LTE 700", status: "En service", updated: "2026-10-01", supportID: "2", azimuths: "240|0")
+        try old.insert(id: "gone", operatorName: "SFR", lat: 45, lon: 4, address: "", system: "GSM 900", status: "En service", updated: "2026-10-01")
+        try old.finishImport()
+        let db = try AntennaDatabase(url: current, writable: true); try db.prepareImport()
+        try db.insert(id: "kept", operatorName: "ORANGE", lat: 45.76, lon: 4.83, address: "", system: "LTE 800", status: "En service", updated: "2026-11-05", supportID: "1", height: "30,0", azimuths: "0|120")
+        try db.insert(id: "kept", operatorName: "ORANGE", lat: 45.76, lon: 4.83, address: "", system: "5G NR 3500", status: "En service", updated: "2026-11-05", supportID: "1", height: "30", azimuths: "0|120")
+        try db.insert(id: "same", operatorName: "SFR", lat: 45, lon: 4, address: "", system: "LTE 700", status: "En service", updated: "2026-11-05", supportID: "2", azimuths: "0|240")
+        try db.insert(id: "new", operatorName: "FREE MOBILE", lat: 45.77, lon: 4.84, address: "12 r de la République", system: "5G NR 3500", status: "En service", updated: "2026-11-05", commune: "Lyon")
+        try db.finishImport()
+        let report = try XCTUnwrap(db.changeReport(since: previous))
+        XCTAssertEqual(report.changes.map(\.id), ["gone", "kept", "new"])
+        XCTAssertEqual([report.added, report.removed, report.modified], [1, 1, 1])
+        let kept = try XCTUnwrap(report.changes.first { $0.id == "kept" })
+        XCTAssertEqual(kept.addedSystems, ["5G NR 3500"]); XCTAssertEqual(kept.removedSystems, ["UMTS 900"])
+        XCTAssertEqual(kept.statusChanges, [.init(system: "LTE 800", from: "Projet approuvé", to: "En service")])
+        XCTAssertEqual(kept.details, [], "Même hauteur écrite autrement et mêmes azimuts : pas de faux changement")
+        XCTAssertEqual(AlertDigest.summary(kept), "5G 3500 MHz ajoutée, 3G 900 MHz retirée, 4G 800 MHz mise en service")
+
+        let lyon = AlertZone(name: "Lyon", latitude: 45.76, longitude: 4.83, newAntennasKM: 5)
+        let result = AlertDigest.messages(sourceDate: report.sourceDate, report: report, preferences: AlertPreferences(data: true, zones: [lyon], favorites: ["kept", "gone"]))
+        XCTAssertEqual(result.messages.map(\.category), [.data, .favorites, .zone])
+        XCTAssertEqual(result.messages[0].body, "Publication du 5 novembre 2026 : 1 station ajoutée, 1 retirée et 1 modifiée en France.\nOuvre Pylo en Wi-Fi pour récupérer la nouvelle base.")
+        XCTAssertEqual(result.messages[1].title, "2 stations favorites ont changé")
+        XCTAssertEqual(result.messages[2].title, "Nouvelle antenne · Lyon")
+        XCTAssertEqual(result.messages[2].body, "Free Mobile, à 1,4 km du centre\n12 Rue de la République, Lyon\nNouvelle station en 5G 3500 MHz.")
+        XCTAssertEqual(result.history.items.map(\.category), [.favorites, .favorites, .zone])
+        XCTAssertTrue(result.history.items[0].removed)
+
+        // Changes radius only: the modified station is reported, the new one is not.
+        let watch = AlertZone(name: "Travail", latitude: 45.76, longitude: 4.83, newAntennasKM: nil, changesKM: 1)
+        let changed = AlertDigest.messages(sourceDate: report.sourceDate, report: report, preferences: AlertPreferences(data: false, zones: [watch], favorites: []))
+        XCTAssertEqual(changed.messages.map(\.title), ["Antenne modifiée · Travail"])
+        XCTAssertTrue(changed.messages[0].body.hasSuffix("5G 3500 MHz ajoutée, 3G 900 MHz retirée, 4G 800 MHz mise en service."), changed.messages[0].body)
+
+        // Two zones: a new frequency on an existing station counts as a new antenna, and each line names its zone.
+        let both = AlertDigest.messages(sourceDate: report.sourceDate, report: report, preferences: AlertPreferences(data: false, zones: [lyon, AlertZone(name: "Bureau", latitude: 45.77, longitude: 4.84, newAntennasKM: 1, changesKM: 5)], favorites: []))
+        XCTAssertEqual(both.messages.map(\.title), ["2 nouvelles antennes dans tes zones"])
+        XCTAssertEqual(both.messages[0].body, "• Orange (10 m de Lyon) : nouvelle fréquence : 5G 3500 MHz\n• Free Mobile, Lyon (10 m de Bureau) : nouvelle station en 5G 3500 MHz")
+
+        let quiet = AlertDigest.messages(sourceDate: report.sourceDate, report: report, preferences: AlertPreferences(data: true, zones: [AlertZone(name: "Paris", latitude: 48.85, longitude: 2.35, newAntennasKM: 2, changesKM: 2)], favorites: []))
+        XCTAssertEqual(quiet.messages.map(\.category), [.data])
+    }
+    func testManifestChangesMustStayInTheSameRelease() throws {
+        let url = URL(string: "https://github.com/Logarex/Pylo/releases/download/anfr-1/antennas.sqlite.gz")!
+        let sha = String(repeating: "a", count: 64)
+        let ok = DataManifest(sourceVersion: "v", sourceDate: "2026-11-05", url: url, sha256: sha, compressedBytes: 1, uncompressedBytes: 1, changes: ChangeFile(url: URL(string: "https://github.com/Logarex/Pylo/releases/download/anfr-1/changes.json")!, sha256: sha, bytes: 10))
+        XCTAssertNoThrow(try ok.validate())
+        let other = DataManifest(sourceVersion: "v", sourceDate: "2026-11-05", url: url, sha256: sha, compressedBytes: 1, uncompressedBytes: 1, changes: ChangeFile(url: URL(string: "https://github.com/Logarex/Pylo/releases/download/anfr-0/changes.json")!, sha256: sha, bytes: 10))
+        XCTAssertThrowsError(try other.validate())
+        let legacy = try JSONDecoder().decode(DataManifest.self, from: Data(#"{"schemaVersion":2,"sourceVersion":"v","sourceDate":"2026-11-05","url":"\#(url.absoluteString)","sha256":"\#(sha)","compressedBytes":1,"uncompressedBytes":1}"#.utf8))
+        XCTAssertNil(legacy.changes)
+    }
+    func testDistanceAndLabels() {
+        XCTAssertEqual(AlertDigest.formatDistance(843), "840 m")
+        XCTAssertEqual(AlertDigest.formatDistance(12_600), "13 km")
+        XCTAssertEqual(Radio.label("5G NR 3500"), "5G 3500 MHz")
+        XCTAssertEqual(Radio.label("GSM 900"), "2G 900 MHz")
+        XCTAssertEqual(Radio.bands(["LTE 800", "5G NR 3500", "LTE 2600", "5G NR 700", "LTE 800"]), "5G 700 · 3500 MHz et 4G 800 · 2600 MHz")
+    }
 }

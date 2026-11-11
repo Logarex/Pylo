@@ -64,15 +64,19 @@ https://github.com/Logarex/Pylo#vie-privée-et-sources
 ```
 (Mieux : une page dédiée, par exemple un fichier `PRIVACY.md` dans le dépôt. Texte proposé en annexe A.)
 
-**Collecte de données** : **« Non, nous ne collectons pas de données depuis cette app. »**
+**Collecte de données** : **« Oui, nous collectons des données depuis cette app »**, puis une seule catégorie :
+- **Identifiants → Identifiant de l’appareil** (jeton Firebase Cloud Messaging)
+  - Utilisation : **Fonctionnalités de l’app** (notifications)
+  - Lié à l’identité : **Non**
+  - Utilisé pour le suivi : **Non**
 
-Pourquoi c'est exact :
-- La position, le cap, les favoris et la dernière zone de carte restent sur l'iPhone et ne sont envoyés à aucun serveur Pylo.
-- Aucun compte, aucune analytique, aucune publicité, aucun SDK tiers.
-- Les recherches et itinéraires passent par Apple Plans (service d'Apple, non compté comme collecte par le développeur).
-- La base ANFR est téléchargée depuis GitHub sans transmettre d'information personnelle.
+Pourquoi :
+- La position, le cap, les favoris, les zones d’alerte et la dernière zone de carte restent sur l’iPhone et ne sont envoyés à aucun serveur.
+- Les notifications instantanées passent par Firebase Cloud Messaging : l’iPhone s’abonne à deux sujets communs à tous (`anfr-data`, `anfr-changes`). Firebase reçoit un jeton technique, pas la position ni les zones ni les favoris.
+- Aucun compte, aucune analytique, aucune publicité.
+- Les recherches et itinéraires passent par Apple Plans (service d’Apple, non compté comme collecte par le développeur).
 
-→ Étiquette affichée : **« Données non collectées »**.
+→ Étiquette affichée : **« Données non liées à vous : Identifiants »**.
 
 ---
 
@@ -127,11 +131,11 @@ Le nombre de stations, de supports, de générations et de fréquences, et leur 
 COMPRENDRE
 De courtes fiches pour s'y retrouver : GSM, UMTS, LTE, NR, 4G+, 5G NSA et SA, fréquences basses et hautes… Les notions que j'aurais aimé avoir sous la main au début.
 
-DES DONNÉES À JOUR, SANS RIEN FAIRE
+DONNÉES À JOUR
 Les antennes viennent des publications officielles de l'ANFR. Pylo vérifie les nouveautés au maximum une fois par jour et télécharge la base en Wi-Fi. Elle reste consultable hors ligne.
 
-TES DONNÉES RESTENT AVEC TOI
-Pas de compte, pas de pub, pas de suivi. Tes favoris et ta position restent sur ton iPhone.
+VIE PRIVÉE
+Pas de compte, pas de pub, pas de suivi. Tes favoris, ta position et tes zones d'alerte restent sur ton iPhone.
 
 BON À SAVOIR
 Les flèches montrent une direction déclarée, pas une couverture. La station la plus proche n'est pas forcément celle à laquelle ton iPhone est connecté : iOS ne laisse pas les apps lire cette information.
@@ -227,13 +231,14 @@ Recommandé : **« Publier manuellement cette version »**, pour choisir toi-mê
 
 Dernière mise à jour : 2 novembre 2026
 
-Pylo ne collecte aucune donnée personnelle.
+Pylo ne collecte pas de donnée personnelle. La seule exception concerne les notifications, si tu les actives (voir plus bas).
 
 • Pas de compte, pas de publicité, pas d'outil de mesure d'audience ni de suivi.
 • Ta position sert seulement pendant l'utilisation, pour centrer la carte et calculer la distance et la direction des antennes. Elle n'est ni enregistrée en historique ni envoyée à un serveur.
 • Tes favoris et la dernière zone de carte consultée restent sur ton appareil.
 • Les recherches d'adresses et les itinéraires sont traités par Apple Plans, selon la politique de confidentialité d'Apple.
 • La base d'antennes est téléchargée depuis GitHub, sans transmettre ta position ni tes favoris.
+• Si tu actives les notifications, ton appareil s'abonne à deux canaux communs via Firebase Cloud Messaging (Google). Firebase reçoit un identifiant technique de notification, pas ta position, tes zones ou tes favoris : le tri est fait sur ton appareil.
 
 Contact : pylo@nephoos.com
 ```

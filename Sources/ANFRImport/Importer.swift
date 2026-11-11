@@ -26,11 +26,27 @@ struct CatalogSelection: Codable { let version: String; let resource: Resource; 
             try JSONEncoder().encode(selected).write(to: URL(fileURLWithPath: args[2]), options: .atomic)
             return
         }
-        if args.count == 7 && args[1] == "--manifest" {
+        if args.count == 5 && args[1] == "--push-message" {
+            // Same text as the local alert: --push-message manifest.json changes.json push.json
+            let manifest = try JSONDecoder().decode(DataManifest.self, from: Data(contentsOf: URL(fileURLWithPath: args[2])))
+            let report = FileManager.default.fileExists(atPath: args[3]) ? try JSONDecoder().decode(ChangeReport.self, from: Data(contentsOf: URL(fileURLWithPath: args[3]))) : nil
+            let message = AlertDigest.publication(sourceDate: manifest.sourceDate, report: report)
+            try JSONSerialization.data(withJSONObject: ["title": message.title, "body": message.body, "sourceDate": manifest.sourceDate]).write(to: URL(fileURLWithPath: args[4]), options: .atomic)
+            return
+        }
+        if (args.count == 7 || args.count == 8) && args[1] == "--manifest" {
             let archive = URL(fileURLWithPath: args[2]), sqlite = URL(fileURLWithPath: args[3])
             let selected = try JSONDecoder().decode(CatalogSelection.self, from: Data(contentsOf: URL(fileURLWithPath: args[4])))
             let db = try AntennaDatabase(url: sqlite); try db.validate(requireEnriched: true)
-            let manifest = try DataManifest(sourceVersion: selected.version, sourceDate: db.sourceDate(), url: URL(string: args[5])!, sha256: DataUpdates.digest(of: archive), compressedBytes: FileManager.default.attributesOfItem(atPath: archive.path)[.size] as! Int, uncompressedBytes: FileManager.default.attributesOfItem(atPath: sqlite.path)[.size] as! Int)
+            let databaseURL = URL(string: args[5])!
+            var changes: ChangeFile?
+            if args.count == 8, FileManager.default.fileExists(atPath: args[7]) {
+                let file = URL(fileURLWithPath: args[7])
+                let report = try JSONDecoder().decode(ChangeReport.self, from: Data(contentsOf: file))
+                guard report.sourceDate == (try db.sourceDate()) else { throw DatabaseError.sqlite("changes.json ne correspond pas à la base.") }
+                changes = try ChangeFile(url: databaseURL.deletingLastPathComponent().appendingPathComponent("changes.json"), sha256: DataUpdates.digest(of: file), bytes: FileManager.default.attributesOfItem(atPath: file.path)[.size] as! Int)
+            }
+            let manifest = try DataManifest(sourceVersion: selected.version, sourceDate: db.sourceDate(), url: databaseURL, sha256: DataUpdates.digest(of: archive), compressedBytes: FileManager.default.attributesOfItem(atPath: archive.path)[.size] as! Int, uncompressedBytes: FileManager.default.attributesOfItem(atPath: sqlite.path)[.size] as! Int, changes: changes)
             try manifest.validate()
             let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
             try encoder.encode(manifest).write(to: URL(fileURLWithPath: args[6]), options: .atomic)
@@ -110,7 +126,13 @@ struct CatalogSelection: Codable { let version: String; let resource: Resource; 
         guard matchedDates > 1000 else { throw DatabaseError.sqlite("Trop peu de stations reliées aux dates ANFR") }
         quality["stationsWithDateRecord"] = matchedDates
         try JSONEncoder().encode(datesResource).write(to: output.deletingLastPathComponent().appendingPathComponent("dates-source.json"), options: .atomic)
-        if let previous = ProcessInfo.processInfo.environment["PYLO_PREVIOUS_DATABASE"] { try db.recordComparison(previous: URL(fileURLWithPath: previous)) }
+        if let previous = ProcessInfo.processInfo.environment["PYLO_PREVIOUS_DATABASE"] {
+            try db.recordComparison(previous: URL(fileURLWithPath: previous))
+            if let report = try db.changeReport(since: URL(fileURLWithPath: previous)) {
+                try JSONEncoder().encode(report).write(to: output.deletingLastPathComponent().appendingPathComponent("changes.json"), options: .atomic)
+                print("Changements : \(report.added) stations ajoutées, \(report.removed) retirées, \(report.modified) modifiées.")
+            }
+        }
         try db.validate()
         let data = try Data(contentsOf: temporary); try data.write(to: output, options: .atomic)
         quality["sourceRows"] = count; quality["sourceColumns"] = header.count

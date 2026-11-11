@@ -4,6 +4,13 @@ import CryptoKit
 import FoundationNetworking
 #endif
 
+/// changes.json published in the same release as the database. Optional: older manifests don't have it.
+public struct ChangeFile: Codable, Sendable {
+    public let url: URL
+    public let sha256: String
+    public let bytes: Int
+    public init(url: URL, sha256: String, bytes: Int) { self.url = url; self.sha256 = sha256; self.bytes = bytes }
+}
 public struct DataManifest: Codable, Sendable {
     public let schemaVersion: Int
     public let sourceVersion: String
@@ -12,9 +19,10 @@ public struct DataManifest: Codable, Sendable {
     public let sha256: String
     public let compressedBytes: Int
     public let uncompressedBytes: Int
-    public init(sourceVersion: String, sourceDate: String, url: URL, sha256: String, compressedBytes: Int, uncompressedBytes: Int) {
+    public let changes: ChangeFile?
+    public init(sourceVersion: String, sourceDate: String, url: URL, sha256: String, compressedBytes: Int, uncompressedBytes: Int, changes: ChangeFile? = nil) {
         schemaVersion = 2; self.sourceVersion = sourceVersion; self.sourceDate = sourceDate
-        self.url = url; self.sha256 = sha256; self.compressedBytes = compressedBytes; self.uncompressedBytes = uncompressedBytes
+        self.url = url; self.sha256 = sha256; self.compressedBytes = compressedBytes; self.uncompressedBytes = uncompressedBytes; self.changes = changes
     }
     public func validate() throws {
         guard schemaVersion == 2, !sourceVersion.isEmpty, sourceDate.count == 10,
@@ -23,6 +31,13 @@ public struct DataManifest: Codable, Sendable {
               sha256.count == 64, sha256.allSatisfy({ $0.isHexDigit }),
               (1...100_000_000).contains(compressedBytes), (1...512_000_000).contains(uncompressedBytes) else {
             throw DatabaseError.sqlite("Cette mise à jour n’est pas compatible avec Pylo.")
+        }
+        if let changes {
+            guard changes.url.scheme == "https", changes.url.host == "github.com",
+                  changes.url.deletingLastPathComponent() == url.deletingLastPathComponent(), changes.url.lastPathComponent == "changes.json",
+                  changes.sha256.count == 64, changes.sha256.allSatisfy({ $0.isHexDigit }), (1...50_000_000).contains(changes.bytes) else {
+                throw DatabaseError.sqlite("La liste des changements n’est pas compatible avec Pylo.")
+            }
         }
     }
 }
@@ -43,6 +58,20 @@ public enum DataUpdates {
         guard (response as? HTTPURLResponse)?.statusCode == 200, data.count < 65536 else { throw DatabaseError.sqlite("La vérification est momentanément indisponible.") }
         let manifest = try JSONDecoder().decode(DataManifest.self, from: data)
         try manifest.validate(); return manifest
+    }
+    /// Small download (usually well under 1 MB), allowed on cellular so background alerts work away from Wi-Fi.
+    public static func fetchChanges(_ manifest: DataManifest) async throws -> ChangeReport? {
+        try manifest.validate()
+        guard let file = manifest.changes else { return nil }
+        let request = URLRequest(url: file.url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200, data.count == file.bytes,
+              SHA256.hash(data: data).map({ String(format: "%02x", $0) }).joined() == file.sha256.lowercased() else {
+            throw DatabaseError.sqlite("La liste des changements reçue est incomplète.")
+        }
+        let report = try JSONDecoder().decode(ChangeReport.self, from: data)
+        guard report.sourceDate == manifest.sourceDate else { throw DatabaseError.sqlite("La liste des changements ne correspond pas à la publication.") }
+        return report
     }
     /// Download into a temporary file, check its fingerprint, validate SQLite, then atomically replace it.
     public static func install(_ manifest: DataManifest, at destination: URL) async throws {

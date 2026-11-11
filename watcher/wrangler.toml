@@ -1,0 +1,9 @@
+name = "pylo-anfr-watcher"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# Toutes les minutes (offre gratuite : jusqu’à 5 déclencheurs par compte).
+[triggers]
+crons = ["* * * * *"]
+
+# Secret à ajouter une fois : npx wrangler secret put GITHUB_TOKEN
