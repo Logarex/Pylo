@@ -8,3 +8,6 @@ source.json
 
 App/Resources/antennas.sqlite
 previous/
+
+# Cloudflare Wrangler
+.wrangler/
