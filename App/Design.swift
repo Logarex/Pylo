@@ -1,0 +1,128 @@
+import SwiftUI
+import CoreTelephony
+import Network
+
+enum Palette {
+    static let accent = Color("AccentColor")
+    static func operatorColor(_ name: String) -> Color {
+        if name.contains("ORANGE") { return .orange }
+        if name.contains("FREE") { return Color("FreeOperator") }
+        if name == "SFR" || name == "SRR" { return Color(red: 0.90, green: 0.04, blue: 0.16) }
+        if name.contains("BOUYGUES") { return Color(red: 0, green: 0.57, blue: 0.68) }
+        let seed = name.utf8.reduce(0) { ($0 * 31 + Int($1)) % 997 }
+        return Color(hue: Double(seed % 360) / 360, saturation: 0.7, brightness: 0.65)
+    }
+    static func generation(_ name: String) -> Color {
+        switch name { case "2G": .brown; case "3G": .indigo; case "4G": .teal; default: accent }
+    }
+}
+struct InfoCard<Content: View>: View {
+    let title: String
+    let subtitle: String
+    @ViewBuilder let content: Content
+    init(_ title: String, subtitle: String = "", @ViewBuilder content: () -> Content) { self.title = title; self.subtitle = subtitle; self.content = content() }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            VStack(alignment: .leading, spacing: 5) { Text(title).font(.title3.bold()); if !subtitle.isEmpty { Text(subtitle).font(.subheadline).foregroundStyle(.secondary) } }
+            content
+        }.frame(maxWidth: .infinity, alignment: .leading).padding(20).background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 24))
+    }
+}
+struct RadioLine: Identifiable {
+    let id: Int
+    let name: String
+    let technology: String
+    let dataLine: Bool
+}
+@MainActor @Observable final class DeviceNetworkInfo {
+    private let telephony = CTTelephonyNetworkInfo()
+    private let cellularPolicy = CTCellularData()
+    var cellularAccess = "Vérification…"
+    var supportsIPv4: Bool?
+    var supportsIPv6: Bool?
+    var supportsDNS: Bool?
+    var radioLines: [RadioLine] = []
+    private let monitor = NWPathMonitor()
+    var connection = "Vérification…"
+    var expensive = false
+    var constrained: Bool?
+    var lastUpdated: Date?
+    private var hasPath = false
+    @ObservationIgnored private var radioTask: Task<Void, Never>?
+    var isSimulator: Bool {
+        #if targetEnvironment(simulator)
+        true
+        #else
+        false
+        #endif
+    }
+    var connectionIcon: String { connection == "Wi-Fi" ? "wifi" : connection == "Réseau mobile" ? "antenna.radiowaves.left.and.right" : "network" }
+    var radioStatus: String { technologies.isEmpty ? (isSimulator ? "Indisponible sur simulateur" : "Non transmis par iOS") : technologies.joined(separator: " · ") }
+    var radioExplanation: String {
+        if isSimulator { return "Pas de modem sur le simulateur. Teste sur un vrai iPhone." }
+        if technologies.isEmpty { return "iOS n’a pas donné la technologie cette fois. Ça ne veut pas dire que tu n’as pas de réseau." }
+        return "Indiquée par ta carte SIM, même si tu es en Wi-Fi."
+    }
+    var reducedDataStatus: String {
+        guard let constrained else { return hasPath ? "Sans connexion active" : "Vérification…" }
+        return constrained ? "Activé sur cette connexion" : "Désactivé sur cette connexion"
+    }
+    var technologies: [String] = []
+    init() {
+        cellularPolicy.cellularDataRestrictionDidUpdateNotifier = { [weak self] _ in
+            Task { @MainActor [weak self] in self?.refreshRadio() }
+        }
+        monitor.pathUpdateHandler = { [weak self] path in
+            Task { @MainActor [weak self] in self?.apply(path) }
+        }
+        monitor.start(queue: DispatchQueue(label: "org.epimac.pylo.network"))
+        radioTask = Task { @MainActor [weak self] in
+            for await _ in NotificationCenter.default.notifications(named: .CTServiceRadioAccessTechnologyDidChange).map({ _ in true }) {
+                guard let self else { return }
+                self.refreshRadio()
+            }
+        }
+        refreshRadio()
+    }
+    private func apply(_ path: NWPath) {
+        hasPath = true
+        connection = path.status != .satisfied ? "Hors ligne" : path.usesInterfaceType(.wifi) ? "Wi-Fi" : path.usesInterfaceType(.cellular) ? "Réseau mobile" : "Autre connexion"
+        expensive = path.isExpensive
+        supportsIPv4 = path.status == .satisfied ? path.supportsIPv4 : nil
+        supportsIPv6 = path.status == .satisfied ? path.supportsIPv6 : nil
+        supportsDNS = path.status == .satisfied ? path.supportsDNS : nil
+        constrained = path.status == .satisfied ? path.isConstrained : nil
+        refreshRadio()
+    }
+    func refresh() {
+        if hasPath { apply(monitor.currentPath) }
+        else { refreshRadio() }
+    }
+    func refreshRadio() {
+        lastUpdated = Date()
+        switch cellularPolicy.restrictedState {
+        case .restricted: cellularAccess = "Restreint pour Pylo"
+        case .notRestricted: cellularAccess = "Non restreint par iOS"
+        default: cellularAccess = "État non transmis par iOS"
+        }
+        func name(_ value: String) -> String {
+            switch value {
+            case CTRadioAccessTechnologyGPRS: return "2G · GPRS"
+            case CTRadioAccessTechnologyEdge: return "2G · EDGE"
+            case CTRadioAccessTechnologyWCDMA: return "3G · UMTS"
+            case CTRadioAccessTechnologyHSDPA: return "3G · HSDPA"
+            case CTRadioAccessTechnologyHSUPA: return "3G · HSUPA"
+            case CTRadioAccessTechnologyLTE: return "4G · LTE"
+            case CTRadioAccessTechnologyNRNSA: return "5G NR · NSA"
+            case CTRadioAccessTechnologyNR: return "5G NR"
+            default: return value.replacingOccurrences(of: "CTRadioAccessTechnology", with: "")
+            }
+        }
+        let services = (telephony.serviceCurrentRadioAccessTechnology ?? [:]).sorted { $0.key < $1.key }
+        radioLines = services.enumerated().map { index, service in
+            RadioLine(id: index, name: "Ligne \(index+1)", technology: name(service.value), dataLine: service.key == telephony.dataServiceIdentifier)
+        }
+        technologies = Array(Set(radioLines.map(\.technology))).sorted()
+    }
+    deinit { radioTask?.cancel(); monitor.cancel() }
+}

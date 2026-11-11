@@ -20,6 +20,10 @@ import MapKit
     var generation = ""
     var operatorName = ""
     var favorites: Set<String> { didSet { UserDefaults.standard.set(Array(favorites), forKey: "favorites") } }
+    var alertData: Bool { didSet { UserDefaults.standard.set(alertData, forKey: AlertKeys.data); alertSettingsChanged() } }
+    var alertFavorites: Bool { didSet { UserDefaults.standard.set(alertFavorites, forKey: AlertKeys.favorites); alertSettingsChanged() } }
+    var alertZones: [AlertZone] { didSet { UserDefaults.standard.set(try? JSONEncoder().encode(alertZones), forKey: AlertKeys.zones); alertSettingsChanged() } }
+    @ObservationIgnored var lastAlertCheck: Date?
     let location = LocationService()
     let device = DeviceNetworkInfo()
     var region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522), span: MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06)) {
@@ -37,6 +41,9 @@ import MapKit
         installedDigest = UserDefaults.standard.string(forKey: "installedDataDigest") ?? ""
         lastDataCheck = UserDefaults.standard.object(forKey: "lastDataCheck") as? Date
         favorites = Set(UserDefaults.standard.stringArray(forKey: "favorites") ?? [])
+        alertData = UserDefaults.standard.bool(forKey: AlertKeys.data)
+        alertFavorites = UserDefaults.standard.bool(forKey: AlertKeys.favorites)
+        alertZones = AlertKeys.savedZones()
         if let values = UserDefaults.standard.array(forKey: "lastMapViewport") as? [Double], let saved = MapViewport(values: values) {
             region = MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: saved.values[0], longitude: saved.values[1]), span: MKCoordinateSpan(latitudeDelta: saved.values[2], longitudeDelta: saved.values[3]))
         }
