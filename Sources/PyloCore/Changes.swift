@@ -170,7 +170,13 @@ public struct AlertItem: Codable, Sendable, Identifiable, Equatable {
 public struct AlertHistory: Codable, Sendable {
     public let sourceDate: String
     public let items: [AlertItem]
-    public init(sourceDate: String, items: [AlertItem]) { self.sourceDate = sourceDate; self.items = items }
+    /// Totaux pour toute la France (absents dans les historiques plus anciens).
+    public let added: Int?
+    public let removed: Int?
+    public let modified: Int?
+    public init(sourceDate: String, items: [AlertItem], added: Int? = nil, removed: Int? = nil, modified: Int? = nil) {
+        self.sourceDate = sourceDate; self.items = items; self.added = added; self.removed = removed; self.modified = modified
+    }
 }
 
 public enum AlertDigest {
@@ -179,12 +185,16 @@ public enum AlertDigest {
     /// The same text for everyone: sent by push from GitHub Actions, or posted locally when push isn't available.
     public static func publication(sourceDate: String, report: ChangeReport?) -> AlertMessage {
         var body = "Publication du " + longDate(sourceDate)
-        if let report {
-            let parts = [(report.added, "ajoutée"), (report.removed, "retirée"), (report.modified, "modifiée")].filter { $0.0 > 0 }.enumerated().map { index, part in count(of: part.0, index == 0 ? "station" : nil, part.1) }
-            body += parts.isEmpty ? ". Aucune station ajoutée, retirée ou modifiée." : " : " + joined(parts) + " en France."
-        } else { body += "." }
+        if let report { body += " : " + franceSummary(added: report.added, removed: report.removed, modified: report.modified) }
+        else { body += "." }
         body += "\nOuvre Pylo en Wi-Fi pour récupérer la nouvelle base."
         return AlertMessage(category: .data, title: "Nouvelles données ANFR", body: body)
+    }
+
+    /// "120 stations ajoutées, 19 retirées et 7 365 modifiées en France."
+    public static func franceSummary(added: Int, removed: Int, modified: Int) -> String {
+        let parts = [(added, "ajoutée"), (removed, "retirée"), (modified, "modifiée")].filter { $0.0 > 0 }.enumerated().map { index, part in count(of: part.0, index == 0 ? "station" : nil, part.1) }
+        return parts.isEmpty ? "aucune station ajoutée, retirée ou modifiée." : joined(parts) + " en France."
     }
 
     /// Builds the personal notifications for one publication. `report` is nil when the publication has no changes.json.
@@ -226,7 +236,7 @@ public enum AlertDigest {
         }
         if let message = zoneMessage(fresh, category: .zone, one: { _ in "Nouvelle antenne" }, many: { "\($0) nouvelles antennes" }, text: novelty) { messages.append(message) }
         if let message = zoneMessage(modified, category: .zoneChanges, one: { $0.kind == .removed ? "Antenne retirée" : "Antenne modifiée" }, many: { "\($0) antennes modifiées" }, text: summary) { messages.append(message) }
-        return (messages, AlertHistory(sourceDate: sourceDate, items: items))
+        return (messages, AlertHistory(sourceDate: sourceDate, items: items, added: report?.added, removed: report?.removed, modified: report?.modified))
     }
 
     private static func zoneMessage(_ matches: [Match], category: AlertMessage.Category, one: (StationChange) -> String, many: (Int) -> String, text: (StationChange) -> String) -> AlertMessage? {

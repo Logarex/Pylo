@@ -103,6 +103,19 @@ enum AlertChecker {
     }
 }
 
+extension AlertChecker {
+    /// Recalcule les changements de la dernière publication pour l’écran « Changements », sans rien notifier.
+    /// Les favoris y figurent même si leur alerte est coupée.
+    static func latestHistory() async -> AlertHistory? {
+        guard let manifest = try? await DataUpdates.fetchManifest() else { return nil }
+        let report = (try? await DataUpdates.fetchChanges(manifest)) ?? nil
+        let preferences = AlertPreferences(data: false, zones: AlertKeys.savedZones().filter(\.isActive), favorites: Set(UserDefaults.standard.stringArray(forKey: "favorites") ?? []))
+        let history = AlertDigest.messages(sourceDate: manifest.sourceDate, report: report, preferences: preferences).history
+        if report != nil { AlertHistoryStore.save(history) }
+        return history
+    }
+}
+
 enum AlertHistoryStore {
     private static var url: URL { URL.applicationSupportDirectory.appendingPathComponent("alerts.json") }
     static func load() -> AlertHistory? { (try? Data(contentsOf: url)).flatMap { try? JSONDecoder().decode(AlertHistory.self, from: $0) } }
@@ -139,14 +152,18 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     nonisolated func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         Task { @MainActor in PushService.sync() }
     }
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        [.banner, .list, .sound]
+    // Versions à completion handler, appelées sur le fil principal : la version async rappelait iOS
+    // depuis un autre fil, ce qui faisait planter l’app au toucher d’une notification.
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .list, .sound])
     }
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        let category = response.notification.request.content.userInfo["category"] as? String
-        // The data alert just opens Pylo, which checks for the new base on its own.
-        guard let category, category != AlertMessage.Category.data.rawValue else { return }
-        await MainActor.run { AlertInbox.shared.showRecent = true }
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        nonisolated(unsafe) let done = completionHandler
+        Task { @MainActor in
+            // Toutes les notifications de Pylo ouvrent l’écran des changements de la publication.
+            AlertInbox.shared.showRecent = true
+            done()
+        }
     }
 }
 
@@ -246,7 +263,7 @@ struct AlertsView: View {
             }
             if let history, !history.items.isEmpty {
                 Section {
-                    NavigationLink { RecentAlertsView() } label: { LabeledContent("Dernières alertes", value: "\(history.items.count)") }
+                    NavigationLink { RecentAlertsView() } label: { LabeledContent("Derniers changements", value: "\(history.items.count)") }
                 } footer: { Text("Publication du \(AlertDigest.longDate(history.sourceDate)).") }
             }
         }
@@ -380,11 +397,18 @@ struct ZoneMap: View {
 struct RecentAlertsView: View {
     @Environment(AppStore.self) private var store
     @State private var history = AlertHistoryStore.load()
+    @State private var loading = true
     @State private var local: [String: Station] = [:]
-    private let sections: [(AlertMessage.Category, String)] = [(.favorites, "Mes favoris"), (.zone, "Nouvelles antennes"), (.zoneChanges, "Changements dans mes zones")]
+    private let sections: [(AlertMessage.Category, String)] = [(.favorites, "Mes favoris"), (.zone, "Nouvelles antennes dans mes zones"), (.zoneChanges, "Changements dans mes zones")]
     var body: some View {
         List {
             if let history {
+                Section {
+                    Text("Publication du \(AlertDigest.longDate(history.sourceDate))").font(.headline)
+                    if let added = history.added, let removed = history.removed, let modified = history.modified {
+                        Text(AlertDigest.capitalized(AlertDigest.franceSummary(added: added, removed: removed, modified: modified)))
+                    }
+                }
                 ForEach(sections, id: \.0) { category, title in
                     let items = history.items.filter { $0.category == category }
                     if !items.isEmpty {
@@ -397,21 +421,34 @@ struct RecentAlertsView: View {
                         }
                     }
                 }
+                if history.items.isEmpty && !loading {
+                    Section {
+                        Text(history.added == nil
+                             ? "Le détail des changements n’existe pas encore pour cette publication. Il sera là à partir de la prochaine publication de l’ANFR."
+                             : "Rien de nouveau dans tes zones ni sur tes favoris pour cette publication.")
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 if !history.items.isEmpty {
                     Section {
-                        Text("Publication de l’ANFR du \(AlertDigest.longDate(history.sourceDate)). La fiche d’une nouvelle station s’ouvre une fois la base mise à jour, en Wi-Fi.")
+                        Text("La fiche d’une nouvelle station s’ouvre une fois la base mise à jour, en Wi-Fi.")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 }
             }
         }
         .overlay {
-            if history?.items.isEmpty ?? true {
-                ContentUnavailableView("Aucune alerte récente", systemImage: "bell", description: Text("Les changements sur tes favoris et dans tes zones apparaîtront ici."))
+            if history == nil {
+                if loading { ProgressView("Recherche des changements…") }
+                else { ContentUnavailableView("Changements indisponibles", systemImage: "wifi.slash", description: Text("Vérifie ta connexion, puis rouvre cet écran.")) }
             }
         }
-        .navigationTitle("Dernières alertes")
-        .task(id: store.databaseRevision) {
+        .navigationTitle("Changements")
+        .task {
+            if let fresh = await AlertChecker.latestHistory() { history = fresh }
+            loading = false
+        }
+        .task(id: "\(store.databaseRevision)-\(history?.sourceDate ?? "")-\(history?.items.count ?? 0)") {
             guard let ids = history?.items.map(\.stationID), !ids.isEmpty,
                   let stations = try? await store.savedStations(ids: Set(ids)) else { return }
             local = Dictionary(stations.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
