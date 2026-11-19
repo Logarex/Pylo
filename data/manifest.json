@@ -1,14 +1,14 @@
 {
   "changes" : {
-    "bytes" : 334637,
-    "sha256" : "b05ed0e7b528dac1139f2affd4e94a3e5ecb6471e514b7c3db6fdc5007617920",
-    "url" : "https://github.com/Logarex/Pylo/releases/download/anfr-2026-11-12-43237832859/changes.json"
+    "bytes" : 369751,
+    "sha256" : "10b38ce508ad451a42a143757b5f9c50a7fe6bca078529c35915397674b177e2",
+    "url" : "https://github.com/Logarex/Pylo/releases/download/anfr-2026-11-19-44551744560/changes.json"
   },
-  "compressedBytes" : 67314393,
+  "compressedBytes" : 67506584,
   "schemaVersion" : 2,
-  "sha256" : "cd60549dc0774e58aa01f2695629befd3ea8c633fd7d6ce8ce1276f59a5c78e7",
-  "sourceDate" : "2026-11-12",
-  "sourceVersion" : "ed7d6285-7fa0-4c2c-bd34-be00ab5b2323:2026-11-12T14:29:17.127000+00:00|c20f4eb5-279c-455c-8b49-b56633d27f62:2026-11-06T08:30:15.139000+00:00",
-  "uncompressedBytes" : 352100352,
-  "url" : "https://github.com/Logarex/Pylo/releases/download/anfr-2026-11-12-43237832859/antennas.sqlite.gz"
+  "sha256" : "89d49657b5e43a802b56f50b969ec7f58037786b9e7b328ee17eb4a3c9d4e7f4",
+  "sourceDate" : "2026-11-19",
+  "sourceVersion" : "51a36735-8a47-4b58-ab53-65ab2a714030:2026-11-19T14:29:00.663000+00:00|c20f4eb5-279c-455c-8b49-b56633d27f62:2026-11-06T08:30:15.139000+00:00",
+  "uncompressedBytes" : 352202752,
+  "url" : "https://github.com/Logarex/Pylo/releases/download/anfr-2026-11-19-44551744560/antennas.sqlite.gz"
 }
