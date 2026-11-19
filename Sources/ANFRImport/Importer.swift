@@ -66,7 +66,7 @@ struct CatalogSelection: Codable { let version: String; let resource: Resource; 
             } else { resource = latest }
             guard let url = URL(string: resource.url), url.scheme == "https", url.host == "static.data.gouv.fr" else { throw DatabaseError.sqlite("Aucune archive officielle reconnue") }
             print("Source : \(resource.url)")
-            let (archive, downloadResponse) = try await URLSession.shared.download(from: url)
+            let (archive, downloadResponse) = try await downloadWithRetry(from: url)
             guard (downloadResponse as? HTTPURLResponse)?.statusCode == 200 else { throw DatabaseError.sqlite("Téléchargement ANFR impossible") }
             let zip = work.appendingPathComponent("source.zip")
             try FileManager.default.moveItem(at: archive, to: zip)
@@ -113,7 +113,7 @@ struct CatalogSelection: Codable { let version: String; let resource: Resource; 
         if let path = ProcessInfo.processInfo.environment["PYLO_SELECTED_RESOURCE"], let selected = try JSONDecoder().decode(CatalogSelection.self, from: Data(contentsOf: URL(fileURLWithPath: path))).datesResource { datesResource = selected }
         else { datesResource = try await latestDatesResource() }
         guard let datesURL = URL(string: datesResource.url), datesURL.scheme == "https", datesURL.host == "static.data.gouv.fr" else { throw DatabaseError.sqlite("Archive de dates ANFR non reconnue") }
-        let (datesArchive, datesResponse) = try await URLSession.shared.download(from: datesURL)
+        let (datesArchive, datesResponse) = try await downloadWithRetry(from: datesURL)
         guard (datesResponse as? HTTPURLResponse)?.statusCode == 200 else { throw DatabaseError.sqlite("Archive de dates ANFR indisponible") }
         let datesZip = work.appendingPathComponent("dates.zip")
         try FileManager.default.moveItem(at: datesArchive, to: datesZip)
@@ -172,6 +172,29 @@ struct CatalogSelection: Codable { let version: String; let resource: Resource; 
         sources.append(contentsOf: [geo,boroughURL])
         let output: [String:Any] = ["date":String(ISO8601DateFormatter().string(from:Date()).prefix(10)),"natures":mappings["natures"]!,"owners":mappings["owners"]!,"communes":communeNames,"sources":sources]
         try JSONSerialization.data(withJSONObject:output,options:[.sortedKeys]).write(to:destination,options:.atomic)
+    }
+    static func downloadWithRetry(from url: URL, attempts: Int = 5) async throws -> (URL, URLResponse) {
+        guard attempts > 0 else { throw DatabaseError.sqlite("Nombre de tentatives de téléchargement invalide") }
+        let retryableErrors: Set<URLError.Code> = [
+            .networkConnectionLost,
+            .timedOut,
+            .cannotConnectToHost,
+            .notConnectedToInternet,
+            .dnsLookupFailed
+        ]
+        for attempt in 1...attempts {
+            do {
+                return try await URLSession.shared.download(from: url)
+            } catch {
+                guard attempt < attempts,
+                      let urlError = error as? URLError,
+                      retryableErrors.contains(urlError.code) else { throw error }
+                let delay = UInt64(1 << attempt)
+                print("Connexion interrompue ; nouvelle tentative dans \(delay) s (\(attempt + 1)/\(attempts)).")
+                try await Task.sleep(nanoseconds: delay * 1_000_000_000)
+            }
+        }
+        throw DatabaseError.sqlite("Téléchargement ANFR impossible après plusieurs tentatives")
     }
     static func latestDatesResource() async throws -> Resource {
         let url = URL(string: "https://www.data.gouv.fr/api/1/datasets/donnees-sur-les-installations-radioelectriques-de-plus-de-5-watts-1/")!
